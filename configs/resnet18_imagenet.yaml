@@ -1,0 +1,6 @@
+# Same network, ImageNet-1k initialisation, full fine-tune. The "does pretraining matter" test.
+_base_: base.yaml
+model: resnet18
+pretrained: imagenet
+lr: 0.0005
+epochs: 20

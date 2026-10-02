@@ -1,0 +1,7 @@
+# Modern CNN, random init: how far does architecture alone get us on 2,400 images?
+_base_: base.yaml
+model: resnet18
+pretrained: none
+lr: 0.001
+epochs: 40
+warmup_epochs: 2

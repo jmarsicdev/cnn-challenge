@@ -1,0 +1,23 @@
+# Shared defaults. Experiments override only what they change.
+seed: 0
+img_size: 224
+color: gray          # gray = grayscale replicated to 3 channels (see PLAN.md §4)
+resize_mode: crop
+aug: light
+batch_size: 64
+epochs: 20
+optimizer: adamw
+lr: 0.0005
+backbone_lr_mult: 1.0
+weight_decay: 0.05
+scheduler: cosine
+warmup_epochs: 1
+label_smoothing: 0.0
+mixup: 0.0
+cutmix: 0.0
+dropout: 0.0
+drop_path: 0.0
+ema_decay: null
+grad_clip: null
+amp: true
+num_workers: 8

@@ -1,0 +1,14 @@
+# Starter-notebook baseline reproduced in this codebase (same net, preprocessing, optimiser).
+_base_: base.yaml
+model: tnet
+pretrained: none
+img_size: 64
+color: gray1
+resize_mode: squash
+aug: none
+optimizer: adam
+lr: 0.002
+weight_decay: 0.0
+scheduler: none
+epochs: 20
+amp: false

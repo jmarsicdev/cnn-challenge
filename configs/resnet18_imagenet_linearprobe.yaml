@@ -1,0 +1,5 @@
+# Frozen ImageNet backbone, train only the classifier: how good are the raw features?
+_base_: resnet18_imagenet.yaml
+freeze_backbone: true
+lr: 0.005
+weight_decay: 0.0
