@@ -1,0 +1,28 @@
+{
+  "checkpoint": "runs/resnet18_imagenet/s0/best.pt",
+  "split": "val",
+  "n": 480,
+  "tta": false,
+  "desaturate": true,
+  "acc": 0.9375,
+  "loss": 0.2079845627148946,
+  "per_class": {
+    "Bedroom": 0.9,
+    "Coast": 0.9,
+    "Flower": 1.0,
+    "Forest": 0.9,
+    "Highway": 0.9666666666666667,
+    "Industrial": 0.9,
+    "InsideCity": 0.9666666666666667,
+    "Kitchen": 1.0,
+    "LivingRoom": 0.9333333333333333,
+    "Mountain": 1.0,
+    "Office": 0.8666666666666667,
+    "OpenCountry": 0.9333333333333333,
+    "Store": 0.9,
+    "Street": 0.9333333333333333,
+    "Suburb": 0.9666666666666667,
+    "TallBuilding": 0.9333333333333333
+  },
+  "train_val_acc": 0.9375
+}
