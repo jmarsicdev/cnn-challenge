@@ -1,0 +1,5 @@
+# Final candidate B: candidate A plus Mixup/CutMix (which helped ConvNeXt-T at 20 epochs).
+_base_: convnext_tiny_final_a.yaml
+aug: medium
+mixup: 0.2
+cutmix: 1.0

@@ -42,6 +42,7 @@ def main():
     ap.add_argument("--tta", action="store_true", help="average with horizontal flip")
     ap.add_argument("--desaturate", action="store_true", help="force grayscale input")
     ap.add_argument("--out", default=None, help="json file to write metrics to")
+    ap.add_argument("--confusion-png", default=None, help="save a confusion-matrix figure here")
     args = ap.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -70,6 +71,13 @@ def main():
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(out, indent=2))
+    if args.confusion_png:
+        from sklearn.metrics import confusion_matrix
+        from train import plot_confusion
+        cm = confusion_matrix(res["targets"], res["preds"], labels=range(len(classes)))
+        Path(args.confusion_png).parent.mkdir(parents=True, exist_ok=True)
+        plot_confusion(cm, classes, args.confusion_png, f"{args.split} acc {res['acc']:.3f} (n={len(items)})")
+        np.save(Path(args.confusion_png).with_suffix(".npy"), cm)
 
 
 if __name__ == "__main__":

@@ -1,58 +1,97 @@
 # AI Usage
 
-> Required by the assignment handout (Section 4). This file is kept as a running
-> log during development and condensed before submission. Entries are written as
-> *engineering/research interactions*, not "I asked for code".
+Required by the handout (§4). Written as engineering/research interactions rather
+than a prompt transcript.
 
-## Tools used
+## Tool
 
-- **Claude Code** (Anthropic, model Claude Fable 5.1) run as a terminal agent for
-  project scaffolding, boilerplate, debugging, and experiment plumbing.
-- *(add others here if used: Copilot, ChatGPT, Cursor, ...)*
+**Claude Code** (Anthropic, model Claude Fable 5.1), run as a terminal agent in this
+repository for scaffolding, boilerplate, debugging, experiment plumbing and
+drafting documentation. All experimental decisions, verification and the final
+write-up are mine.
 
-## Representative examples of AI assistance (target 3–5 in the final version)
+## Representative examples of how AI assisted
 
-| # | Date | What AI did | How it was verified / modified |
-|---|------|-------------|-------------------------------|
-| 1 | 2026-10-01 | Read the handout + starter notebook, proposed a phased experimental plan and a list of candidate directions (`PLAN.md`), scaffolded the repo and the `uv` environment (CUDA 12.8 PyTorch for the RTX 5080), and wrote a dataset inspection script. | Plan reviewed and pruned by me; the dataset facts the script printed (class counts, grey vs colour images, duplicates) were checked against the raw folders before being used to make decisions. |
-| 2 | | | |
-| 3 | | | |
+1. **Project scaffolding and environment.** The AI set up the `uv` project, chose
+   the CUDA 12.8 PyTorch build needed for an RTX 5080 (Blackwell, `sm_120`) after
+   the system Python 3.14 turned out to be unsupported, and wrote the config-driven
+   `train.py` / `evaluate.py` / `predict.py` pipeline with YAML inheritance, CSV +
+   TensorBoard logging and best-validation checkpointing.
+   *Verification:* I ran a 2-epoch smoke test of the starter network through the
+   new pipeline and checked that `evaluate.py` on the same checkpoint reproduced
+   the training-time validation number before any real experiment was trusted.
 
-## Incorrect, ineffective, or questionable AI suggestions
+2. **Dataset inspection script.** The AI wrote `scripts/inspect_dataset.py`
+   (per-class counts, PIL colour mode, size histogram, md5 and perceptual-hash
+   duplicate check). Its output is what revealed that the 15 scene classes are
+   grayscale and only Flower is RGB, and that six exact duplicate pairs exist in
+   the training set. The split script keeps duplicates on one side as a result.
 
-Record at least one. Template:
+3. **Run-summary tooling.** `scripts/summarise_runs.py` aggregates every run's
+   `metrics.json` into a mean ± std table over seeds. The report's experiment table
+   is generated from it rather than typed by hand, so numbers are traceable to
+   run directories.
 
-- **Suggestion:**
-- **Why it looked plausible:**
-- **What was actually wrong / what happened when tried:**
-- **How I detected it (test, shape check, ablation, reading the docs):**
-- **What I did instead:**
+4. **Experiment batching.** The AI drafted the sequence of controlled experiments
+   (augmentation ladder, capacity, recipe knobs) as config files and ran them as
+   background batches while I watched the curves in TensorBoard and asked
+   questions about what each curve meant.
 
-### 1. Self-deadlocking experiment queue (2026-10-01)
+5. **Explaining concepts.** Because I am new to computer vision, I used the AI to
+   explain terms as they came up (fine-tuning vs linear probe, warm-up + cosine
+   schedules, label smoothing, EMA, why SGD vs AdamW). Those explanations shaped
+   which knobs I asked to have tested.
+
+## Incorrect / ineffective / questionable AI suggestions
+
+### 1. Self-deadlocking experiment queue
 - **Suggestion:** To chain experiment batches on the single GPU, the AI wrote a
   background shell loop that waited `until` the previous batch's last
   `metrics.json` existed *and* `pgrep -f "train.py --config"` found no process.
-- **Why it looked plausible:** Standard "wait for the GPU to be free" idiom.
+- **Why it looked plausible:** Standard "wait until the GPU is free" idiom.
 - **What was wrong:** The waiting shell's own command line contained the string
   `train.py --config`, so `pgrep -f` always matched the waiter itself. Both queued
-  batches (seed replication, ConvNeXt recipe sweep) sat idle for ~20 minutes with
-  the GPU unused while the AI reported them as "queued".
-- **How detected:** I asked for a progress check; no run directories had appeared
-  and `nvidia-smi` showed 0% utilisation.
-- **What was done instead:** Killed both waiters and launched a single sequential
-  job. Lesson: a status claim ("queued", "running") from the assistant is not
-  evidence; check the artefacts (run dirs, GPU utilisation).
+  batches sat idle for ~20 minutes with the GPU at 0 % while the AI reported them
+  as "queued" and "running automatically".
+- **How I detected it:** I asked for a progress check. No new run directories had
+  appeared and `nvidia-smi` showed no utilisation, contradicting the status.
+- **What was done instead:** Killed both waiters and launched one sequential job.
+  Lesson: an assistant's status claim is not evidence; check artefacts (run
+  directories, GPU utilisation, TensorBoard) before believing "running".
 
-## Decisions I made (not simply accepted from the AI)
+### 2. "40 epochs helps" from a single seed
+- **Suggestion:** After the first ConvNeXt-T knob sweep, the AI ranked a 40-epoch
+  schedule as the second-best knob (+1.1 points) and proposed folding it into the
+  final recipe.
+- **What was wrong:** With seeds 1 and 2 the 40-epoch run averaged 96.3 ± 0.9, i.e.
+  no better than the 20-epoch base (96.2 ± 0.1) and noisier. The single-seed gain
+  was luck.
+- **How detected:** The replication step I had insisted on earlier for exactly this
+  reason. The AI's own earlier analysis had said single-seed differences under
+  ~3 points are noise, and then it ranked knobs by single seeds anyway.
+- **Outcome:** The final recipe keeps 40 epochs only because EMA benefits from the
+  longer averaging window; it is documented as "within noise", not as a gain.
 
-Record at least one important experimental or architectural decision. Template:
+## Decisions I made rather than accepting the AI recommendation
 
-- **Decision:**
-- **AI's recommendation (if any):**
-- **Why I chose differently / what evidence drove it:**
+- **Grayscale input as the primary pipeline.** When the inspection showed that
+  only Flower is in colour, the AI presented both options (RGB for maximum
+  leaderboard accuracy, or grayscale for an honest 16-way recogniser) and left the
+  choice to me. I chose grayscale as the default and asked for the RGB model to be
+  kept as an ablation with a desaturation probe. The probe showed the RGB model
+  drops from 100 % to 30 % on Flower when colour is removed, while the grayscale
+  model is unaffected, which became a central finding of the report.
+- **Backbone scope.** I chose to centre the comparison on ResNet-18 vs ResNet-50
+  vs ConvNeXt-Tiny with ImageNet initialisation and to treat Places365 only as a
+  stretch goal, rather than spreading the ~24 hours available across more
+  architectures.
+- **Selecting on 3-seed means, not best single run.** Final configuration was
+  chosen by mean validation accuracy over three seeds; the submitted checkpoint is
+  then the best-validation seed of that configuration, and the sibling seeds'
+  test accuracies are reported alongside it.
 
-## Habits followed when accepting generated code
+## Habit followed when accepting generated code
 
 Before running AI-written code: what do I expect it to do, what tensor-shape or
-data assumptions does it make, how will I know if it is wrong, and what experiment
-distinguishes a real improvement from noise? (From the starter notebook, §7.)
+data assumption does it make, how will I know if it is wrong, and what experiment
+distinguishes a real improvement from noise?

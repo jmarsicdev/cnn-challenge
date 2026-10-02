@@ -1,0 +1,28 @@
+{
+  "checkpoint": "runs/convnext_tiny_final_a/s2/best.pt",
+  "split": "test",
+  "n": 400,
+  "tta": false,
+  "desaturate": false,
+  "acc": 0.9725000262260437,
+  "loss": 0.19363128066062926,
+  "per_class": {
+    "Bedroom": 1.0,
+    "Coast": 1.0,
+    "Flower": 1.0,
+    "Forest": 0.84,
+    "Highway": 1.0,
+    "Industrial": 1.0,
+    "InsideCity": 1.0,
+    "Kitchen": 0.92,
+    "LivingRoom": 0.96,
+    "Mountain": 0.92,
+    "Office": 1.0,
+    "OpenCountry": 0.96,
+    "Store": 1.0,
+    "Street": 1.0,
+    "Suburb": 1.0,
+    "TallBuilding": 0.96
+  },
+  "train_val_acc": 0.9770833253860474
+}
