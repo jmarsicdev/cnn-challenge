@@ -61,6 +61,19 @@ I made the calls on what to test, checked the results, and wrote the final repor
 - **Outcome:** The final recipe keeps 40 epochs only because the EMA benefits from a longer
   averaging window. It's documented as "within noise," not as a gain.
 
+### 3. Evaluating twice per epoch no matter how short the epoch is
+- **What it did:** The training loop evaluated the model and its EMA copy on all 480
+  validation images after every epoch. That was fine for the main experiments (30 steps
+  per epoch). For the low-label runs an "epoch" is 5 to 20 steps, so the first batch spent
+  most of its time evaluating: the 10-labels-per-class run was on pace for 15 minutes
+  instead of 3, and the whole batch for several hours.
+- **How I caught it:** The run was at epoch 112 of 200 after 8 minutes while a full
+  ConvNeXt fine-tune on 6x more data takes 1 minute. The per-epoch time in `history.csv`
+  made it obvious the cost wasn't the training steps.
+- **Fix:** Added an `eval_every` option, set it so the low-label runs evaluate about 50
+  times total, killed the batch and restarted it so all seeds use the same cadence. Not
+  a correctness bug, but a design that didn't think about the regime it was being used in.
+
 ## Decisions I made (not just accepted)
 
 - **Grayscale input as the main pipeline.** Once inspection showed only Flower is in color,
