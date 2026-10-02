@@ -53,9 +53,9 @@ foundation embeddings. Test set is for the *final* number only.
 / AI usage 10. Reasoning + design + repro = 60%. The story matters more than the
 last 0.5%.
 
-**Deadline discrepancy.** The handout says **Sep 25, 2026**, which is already
-past (today is Oct 1, 2026). Either the date is stale or an extension applies.
-**Confirm the real deadline with the instructor before planning the schedule.**
+**Deadline.** Handout says Sep 25, 2026 (stale). **Actual deadline: Oct 2, 2026,
+night.** That is ~24 hours from the start of work, so §5 below is the schedule
+that actually governs; §2–3 are the full menu we are cutting from.
 
 **Statistics we must respect.** With a 480-image validation set, one image is
 0.21% and the standard error of an 85% accuracy is ≈1.6%. Differences under
@@ -195,10 +195,40 @@ Ranked roughly by (expected insight × leaderboard relevance) / cost.
   statistics adaptation). Violates the spirit of "test once".
 - Giant backbones (ConvNeXt-L and up). Marginal gain, poor efficiency story.
 
-## 4. Next actions
+## 4. Decisions taken
 
-1. ~~Dataset download + inspection~~ done; facts folded into §0.
-2. Decide grey-vs-RGB default (see §0) — user decision.
-3. Build Phase A (incl. `predict.py` for `test2`), reproduce the starter number.
-4. Run Phase B in one evening; write the first Journey-table rows.
-5. Confirm the real deadline.
+- **Colour (2026-10-01, user decision):** primary pipeline converts every image to
+  grayscale and replicates to 3 channels, so Flower cannot be identified by
+  colour alone. RGB input is run as an ablation, plus a "desaturated Flower"
+  test to show whether the RGB model relies on the shortcut.
+
+## 5. 24-hour schedule (deadline Oct 2 night)
+
+Each training run on the RTX 5080 at 224 px is 1–3 minutes, so compute is not
+the bottleneck; writing is. Reserve the last 4 hours for the report.
+
+**Tonight (≈3 h) — infrastructure + the big axes**
+1. Phase A code: `src/`, `train.py`, `evaluate.py`, `predict.py` (test2 CSV),
+   committed split, run logging, run-summary table. Commit.
+2. Reproduce starter TNet (grey 64) in the new code → first Journey row.
+3. ResNet-18 from scratch @224 vs ResNet-18 ImageNet-pretrained @224. Commit.
+
+**Tomorrow daytime (≈5 h) — controlled experiments, 1 variable each**
+4. Augmentation ladder on the pretrained ResNet-18: none → flip+crop →
+   TrivialAugment → +mixup/cutmix (expected failure-analysis candidate).
+5. Colour ablation: grey-replicated vs RGB; RGB model on desaturated Flower.
+6. Capacity: ResNet-50, ConvNeXt-T (same recipe). Record params/latency.
+7. Recipe knobs on the leader: LR, label smoothing, weight decay, epochs, EMA.
+8. Re-run the 2–3 best configs with 3 seeds. Only seed-robust gains go in the
+   report. Commit after every step; `scripts/summarise_runs.py` builds the table.
+9. *Stretch, only if ahead:* Places365-initialised ResNet-50; TTA.
+
+**Tomorrow evening (≈4 h) — finalise + write**
+10. Pick final config on val → train final → `evaluate.py` on test **once** →
+    `predict.py` on test2 → upload checkpoint to a GitHub Release, pin SHA256.
+11. Confusion matrix + per-class accuracy figure for the report.
+12. Two-page report, `AI_USAGE.md` condensed, README reproduction section.
+    Fresh-clone test: `uv sync && python evaluate.py --checkpoint ...` works.
+
+**Cut for time:** k-fold CV (3 seeds instead), distillation, SAM, learning-curve
+study, Grad-CAM (optional if a figure slot is free), ensembles.
