@@ -79,8 +79,8 @@ python scripts/inspect_dataset.py --data data     # counts, grey/colour, sizes, 
 **Evaluate the released checkpoint** (reproduces 97.25 %):
 
 ```bash
-curl -L -o checkpoints/convnext_tiny_final_a_s2.pt \
-  https://github.com/jmarsicdev/cnn-challenge/releases/download/v1.0/convnext_tiny_final_a_s2.pt
+gh release download v1.0 -p '*.pt' -D checkpoints/     # repo is private: needs `gh auth login` with access
+# (or download convnext_tiny_final_a_s2.pt from the Releases page in a browser into checkpoints/)
 sha256sum -c docs/final/checkpoint.sha256
 python evaluate.py --checkpoint checkpoints/convnext_tiny_final_a_s2.pt --split test
 python predict.py  --checkpoint checkpoints/convnext_tiny_final_a_s2.pt --input data/test2 --out predictions/test2.csv
