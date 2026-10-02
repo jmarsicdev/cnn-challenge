@@ -35,3 +35,6 @@ report/*.out
 report/*.synctex.gz
 report/*.fls
 report/*.fdb_latexmk
+
+# local working notes, not part of the submission
+PLAN.md
