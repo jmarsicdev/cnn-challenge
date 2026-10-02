@@ -1,0 +1,3 @@
+# Recipe knob: label smoothing 0.1 on the leading backbone.
+_base_: convnext_tiny_imagenet.yaml
+label_smoothing: 0.1

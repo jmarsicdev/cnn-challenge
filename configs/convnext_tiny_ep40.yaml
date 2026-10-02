@@ -1,0 +1,3 @@
+# Budget: does a longer cosine schedule help the fine-tune?
+_base_: convnext_tiny_imagenet.yaml
+epochs: 40

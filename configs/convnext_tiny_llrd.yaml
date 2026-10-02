@@ -1,0 +1,4 @@
+# Fine-tuning recipe: backbone at 0.25x the head LR (coarse layer-wise LR decay).
+_base_: convnext_tiny_imagenet.yaml
+lr: 0.0004
+backbone_lr_mult: 0.25

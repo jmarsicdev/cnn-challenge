@@ -1,0 +1,3 @@
+# Recipe knob: TrivialAugment on top of flip+crop for the leading backbone.
+_base_: convnext_tiny_imagenet.yaml
+aug: medium

@@ -1,0 +1,5 @@
+# Failure-analysis candidate at the stronger backbone: Mixup/CutMix with a 20-epoch budget.
+_base_: convnext_tiny_imagenet.yaml
+aug: medium
+mixup: 0.2
+cutmix: 1.0
