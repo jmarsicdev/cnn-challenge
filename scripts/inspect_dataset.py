@@ -27,7 +27,7 @@ def iter_images(split_dir: Path):
 def dhash(img: Image.Image, size: int = 8) -> str:
     """Difference hash: robust to resizing/JPEG re-encoding, good for dedup."""
     g = img.convert("L").resize((size + 1, size), Image.Resampling.LANCZOS)
-    px = list(g.getdata())
+    px = list(g.get_flattened_data()) if hasattr(g, "get_flattened_data") else list(g.getdata())
     bits = []
     for r in range(size):
         row = px[r * (size + 1):(r + 1) * (size + 1)]
@@ -40,7 +40,7 @@ def is_colour(img: Image.Image, sample: int = 64, tol: int = 8) -> bool:
     if img.mode in ("L", "1", "LA", "I;16", "I"):
         return False
     rgb = img.convert("RGB").resize((sample, sample))
-    for r, g, b in rgb.getdata():
+    for r, g, b in (rgb.get_flattened_data() if hasattr(rgb, "get_flattened_data") else rgb.getdata()):
         if max(r, g, b) - min(r, g, b) > tol:
             return True
     return False

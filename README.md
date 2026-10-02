@@ -36,13 +36,22 @@ source .venv/bin/activate
 ### Data
 
 Download the dataset from the link in the handout (a Google Drive folder named
-`data`) and place it so that `data/train/<class>/` and `data/test/<class>/`
-exist. From the command line:
+`data`; "Download all" from the browser gives a zip) and extract it at the repo
+root so that these exist:
+
+```
+data/train/<class>/*.jpg   2,400 images, 16 classes × 150
+data/test/<class>/*.jpg      400 images, 16 classes × 25   (labelled, final eval only)
+data/test2/*.jpg             400 images, unlabelled         (predictions submitted separately)
+```
+
+Then sanity-check it (prints class counts, grey/colour split, sizes, duplicates):
 
 ```bash
-uvx gdown --folder 1NWC3TMsXSWN2TeoYMCjhf2N1b-WRDh-M   # produces ./data
 python scripts/inspect_dataset.py --data data
 ```
+
+Note: the 15 scene classes are grayscale JPEGs; only `Flower` is RGB.
 
 ## Reproducing the final result
 

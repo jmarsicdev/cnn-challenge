@@ -1,0 +1,49 @@
+
+=== train: 2400 images, 16 classes ===
+  Bedroom          150   colour=   0 grey= 150
+  Coast            150   colour=   0 grey= 150
+  Flower           150   colour= 150 grey=   0
+  Forest           150   colour=   0 grey= 150
+  Highway          150   colour=   0 grey= 150
+  Industrial       150   colour=   0 grey= 150
+  InsideCity       150   colour=   0 grey= 150
+  Kitchen          150   colour=   0 grey= 150
+  LivingRoom       150   colour=   0 grey= 150
+  Mountain         150   colour=   0 grey= 150
+  Office           150   colour=   0 grey= 150
+  OpenCountry      150   colour=   0 grey= 150
+  Store            150   colour=   0 grey= 150
+  Street           150   colour=   0 grey= 150
+  Suburb           150   colour=   0 grey= 150
+  TallBuilding     150   colour=   0 grey= 150
+  modes: {'L': 2250, 'RGB': 150}
+  width  min/median/max: 203/256/847
+  height min/median/max: 200/256/886
+  top sizes: [((256, 256), 1200), ((293, 220), 226), ((330, 220), 188), ((220, 293), 44), ((666, 500), 31)]
+
+=== test: 400 images, 16 classes ===
+  Bedroom           25   colour=   0 grey=  25
+  Coast             25   colour=   0 grey=  25
+  Flower            25   colour=  25 grey=   0
+  Forest            25   colour=   0 grey=  25
+  Highway           25   colour=   0 grey=  25
+  Industrial        25   colour=   0 grey=  25
+  InsideCity        25   colour=   0 grey=  25
+  Kitchen           25   colour=   0 grey=  25
+  LivingRoom        25   colour=   0 grey=  25
+  Mountain          25   colour=   0 grey=  25
+  Office            25   colour=   0 grey=  25
+  OpenCountry       25   colour=   0 grey=  25
+  Store             25   colour=   0 grey=  25
+  Street            25   colour=   0 grey=  25
+  Suburb            25   colour=   0 grey=  25
+  TallBuilding      25   colour=   0 grey=  25
+  modes: {'L': 375, 'RGB': 25}
+  width  min/median/max: 220/256/750
+  height min/median/max: 200/256/743
+  top sizes: [((256, 256), 200), ((330, 220), 32), ((293, 220), 26), ((292, 220), 7), ((666, 500), 7)]
+
+=== duplicates ===
+  exact duplicate groups: 6  (train<->test: 0)
+  train images with a near-duplicate (dhash dist<=2) in test: 1
+    train/Bedroom/image_0110.jpg ~ test/Bedroom/image_0104.jpg

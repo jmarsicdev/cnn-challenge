@@ -10,20 +10,36 @@ Working document. Updated as experiments land. The handout lives in
 baseline: grayscale 64×64, a one-conv-layer net, Adam 2e-3, 20 epochs, under 50%.
 We must *substantially* beat it.
 
-**The dataset** (from the Drive folder; confirm with `scripts/inspect_dataset.py`).
-Class names are the classic **15-Scene** categories (Lazebnik, Schmid & Ponce 2006:
-Bedroom, Coast, Forest, Highway, Industrial, InsideCity, Kitchen, LivingRoom,
-Mountain, Office, OpenCountry, Store, Street, Suburb, TallBuilding) **plus Flower**.
-Important consequences, to be verified once the download finishes:
-- 15-Scene images are **natively grayscale** and small (~200–300 px). Colour may
-  only exist in the Flower class, which would make colour a trivial shortcut for
-  one class and irrelevant for the rest. This changes what "use RGB" buys us and
-  argues for grayscale→3-channel replication for pretrained nets.
-- 15-Scene is a well-studied benchmark. Published pretrained-CNN results are in the
-  high-80s to mid-90s%. Places365-pretrained CNNs do especially well on it because
-  Places *is* a scene dataset. That is a hypothesis worth testing, not assuming.
-- 15-Scene has known near-duplicate images across splits. Dedup check before
-  trusting val numbers.
+**The dataset** (verified 2026-10-01 with `scripts/inspect_dataset.py`; full
+output in `docs/dataset_summary.txt`).
+- `data/train/`: 2,400 images, 150/class. `data/test/`: 400 labelled, 25/class.
+- `data/test2/`: **400 unlabelled images** (`image_N.jpg`), not mentioned in the
+  handout. Same composition as test (375 grey + 25 colour, same size mix), no
+  byte-identical overlap with train or test. Almost certainly a hidden-label
+  test set for the leaderboard. **Plan for it:** `predict.py` must emit a CSV of
+  predictions for `test2`, and we never look at it during development.
+- Classes are the classic **15-Scene** set (Lazebnik, Schmid & Ponce 2006) plus
+  **Flower**. The 15 scene classes are **100% grayscale** (PIL mode `L`); Flower
+  is **100% RGB** and genuinely colourful. So *"does the image have colour?"*
+  identifies Flower perfectly. Consequences:
+  - RGB input gives a free, non-visual shortcut for 1/16 of the data. For an
+    honest 16-way recogniser the default pipeline should **convert everything to
+    grayscale and replicate to 3 channels** for pretrained nets; Flower stays
+    easy by texture/shape anyway. Report the RGB variant as an ablation. *(This
+    is a decision for us, not the AI; record it in `AI_USAGE.md`.)*
+  - ImageNet/Places pretrained filters expect colour statistics; grey-replicated
+    input still transfers well in practice, but it is a thing to measure.
+- Resolution: half the images are exactly 256×256, most of the rest ~293×220 or
+  330×220 (4:3-ish), a few 666×500. Native detail tops out around 256 px, so
+  224 is near-native and 320+ is pure upsampling. Aspect ratios are mixed, so
+  Resize-shorter-side + crop vs. squash is a real choice.
+- Duplicates: 6 exact-duplicate pairs *within* train (same class), 0 across
+  train/test, 1 near-duplicate Bedroom pair across train/test. Negligible, but
+  the within-train pairs should not straddle our train/val split (handle in the
+  split script).
+- 15-Scene is well studied: published pretrained-CNN results are high-80s to
+  mid-90s %. Places365-pretrained CNNs do especially well because Places *is* a
+  scene dataset. Hypothesis to test, not assume.
 
 **Hardware.** Local RTX 5080 (16 GB, Blackwell), 24 CPU cores, PyTorch cu128 in
 `.venv`. Enough to fine-tune ResNet-50 / ConvNeXt-T at 224–320 in minutes per run,
@@ -49,7 +65,8 @@ improvement needs either multiple seeds or k-fold evidence.
 ## 1. Validation strategy (decide once, never touch test)
 
 - **Stratified 80/20 split** of the 2,400 training images (120 train / 30 val per
-  class), fixed seed, written to `splits/val_split.json` and committed. Every
+  class), fixed seed, written to `splits/val_split.json` and committed. The 6
+  exact-duplicate pairs are kept on the same side of the split. Every
   experiment uses the identical split so numbers are comparable.
 - **Model selection** = best validation accuracy epoch (as in the starter), with
   val loss logged too so we can see overconfidence.
@@ -133,10 +150,10 @@ Ranked roughly by (expected insight × leaderboard relevance) / cost.
    with 5–10 seeds; plot the spread; show which of our "improvements" survive.
    Most students won't do this; it maps straight onto the 25% reasoning weight
    and the Most Interesting Finding award.
-3. **Does colour matter at all here?** If 15 of 16 classes are grayscale, RGB
-   input is 3× redundant channels except for Flower. Test grey-replicated vs
-   RGB, and check whether the model is "cheating" on Flower via colour alone
-   (train with Flower desaturated). Possibly a surprising, cheap finding.
+3. **The colour shortcut.** Confirmed: 15/16 classes are grayscale, Flower is
+   the only colour class. Compare grey-replicated vs RGB input; check whether an
+   RGB model's Flower accuracy survives desaturated Flower test images. Cheap,
+   concrete, and a good "dataset understanding beat the default pipeline" story.
 4. **Accuracy–efficiency Pareto front.** MobileNetV3 / EfficientNet-B0 /
    ResNet-18 / ResNet-50 / ConvNeXt-T at 128–320 px, plotted as accuracy vs
    FLOPs and vs measured latency. Targets the Efficiency award and the handout's
@@ -180,8 +197,8 @@ Ranked roughly by (expected insight × leaderboard relevance) / cost.
 
 ## 4. Next actions
 
-1. Finish dataset download → `data/` → run `scripts/inspect_dataset.py` →
-   amend §0 with verified facts (grey vs colour, sizes, duplicates).
-2. Build Phase A and reproduce the starter number.
-3. Run Phase B in one evening; write the first Journey-table rows.
-4. Confirm the real deadline.
+1. ~~Dataset download + inspection~~ done; facts folded into §0.
+2. Decide grey-vs-RGB default (see §0) — user decision.
+3. Build Phase A (incl. `predict.py` for `test2`), reproduce the starter number.
+4. Run Phase B in one evening; write the first Journey-table rows.
+5. Confirm the real deadline.
