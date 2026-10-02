@@ -49,13 +49,42 @@ versus 100 % for the grayscale-trained model (`docs/probes/`). It had learned
 | ResNet-18 ImageNet, full fine-tune | 93.0 ± 0.8 | pretraining ≈ +10 points over scratch |
 | + augmentation ladder (none / medium / mixup) | 93.1 / 93.6 / 92.8 | all within seed noise |
 | ResNet-50 ImageNet | 94.4 ± 0.6 | capacity helps, but only visible with seeds |
+| ResNet-50 **Places365** init | 94.6 ± 0.9 | scene-pretraining is no better than ImageNet once fully fine-tuned |
 | ConvNeXt-Tiny ImageNet | 96.2 ± 0.1 | architecture is the 2nd biggest lever |
 | + label smoothing 0.1 | 97.2 ± 0.2 | only knob with a robust gain |
 | + 40 epochs + EMA (**final**) | **97.3 ± 0.4** | test: 97.25 % (sibling seeds 96.75 / 97.0) |
 
+### Twist: how many labels do we actually need?
+
+I hid most of the training labels (keeping 10, 20 or 40 per class) and treated the remaining
+training images as an **unlabeled pool**, then compared supervised-only training with an
+**EMA teacher-student** scheme (`src/semisup.py`, `train_semisup.py`): the teacher is an
+exponential moving average of the student, it pseudo-labels weakly augmented unlabeled images
+above a 0.8 confidence threshold, and the student learns them from strongly augmented views.
+Same 480-image validation set, 3 seeds each (`docs/final/lowlabel_curve.png`).
+
+| labels / class | supervised only | EMA teacher-student | gain |
+|---|---|---|---|
+| 10 | 92.1 ± 0.8 | 94.0 ± 0.0 | +1.9 |
+| 20 | 93.2 ± 0.6 | 94.8 ± 0.2 | +1.6 |
+| 40 | 95.5 ± 0.7 | 95.8 ± 0.1 | +0.3 |
+| 120 (all labels) | 97.3 ± 0.4 | – | – |
+
+The unlabeled images help most when labels are scarcest, and they make training much more
+stable across seeds. Letting the student produce its own pseudo-labels (FixMatch-style) is
+worse and noisier than using the EMA teacher (94.3 ± 0.7 vs 94.8 ± 0.2 at 20 labels/class).
+The unlabeled pool is withheld *training* data; the test images are never used for training.
+
+```bash
+python train_semisup.py --config configs/semisup_sup_k20.yaml --seed 0   # supervised floor
+python train_semisup.py --config configs/semisup_ts_k20.yaml  --seed 0   # teacher-student
+python scripts/plot_lowlabel.py                                           # figure + table
+```
+
 Things that did not work: 40 epochs alone looked like +1.1 on one seed and vanished with
 three (96.3 ± 0.9); TrivialAugment on ConvNeXt-T did nothing; Mixup/CutMix was −0.2 on
-ResNet-18 and +0.6 on ConvNeXt-T, neither beyond noise. Full table: `docs/results.md`.
+ResNet-18 and +0.6 on ConvNeXt-T, neither beyond noise; Places365 initialization matched
+ImageNet rather than beating it. Full table: `docs/results.md`.
 
 ## Reproducing
 
@@ -115,7 +144,8 @@ src/engine.py   AdamW/SGD, warmup+cosine, bf16, label smoothing, mixup, EMA, log
 train.py        train one config/seed  -> runs/<name>/s<seed>/{best.pt, history.csv, metrics.json, confusion.png, tb/}
 evaluate.py     labeled split, --tta, --desaturate (color-shortcut probe), --confusion-png
 predict.py      CSV predictions for an unlabeled folder (data/test2)
-scripts/        inspect_dataset, make_split, summarize_runs
+train_semisup.py  low-label experiments (supervised floor / EMA teacher-student), src/semisup.py
+scripts/        inspect_dataset, make_split, make_label_split, summarize_runs, plot_lowlabel, build_report
 splits/         committed train/val split
 docs/           handout, dataset summary, results table, probes, final test metrics
 predictions/    test2.csv from the final checkpoint
