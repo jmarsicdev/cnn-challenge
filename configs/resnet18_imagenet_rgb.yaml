@@ -1,4 +1,4 @@
-# Colour ablation: same recipe but images fed as stored (Flower in colour, rest grey).
-# Evaluate this checkpoint with `evaluate.py --desaturate` to probe the colour shortcut.
+# Color ablation: same recipe but images fed as stored (Flower in color, rest gray).
+# Evaluate this checkpoint with `evaluate.py --desaturate` to probe the color shortcut.
 _base_: resnet18_imagenet.yaml
 color: rgb

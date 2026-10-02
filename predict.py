@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Predict labels for a folder of unlabelled images (e.g. data/test2).
+"""Predict labels for a folder of unlabeled images (e.g. data/test2).
 
     python predict.py --checkpoint runs/<name>/s0/best.pt --input data/test2 --out predictions/test2.csv
 

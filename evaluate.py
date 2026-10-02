@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-"""Evaluate a checkpoint on a labelled split.
+"""Evaluate a checkpoint on a labeled split.
 
     python evaluate.py --checkpoint runs/<name>/s0/best.pt --split test
     python evaluate.py --checkpoint ... --split val --tta
-    python evaluate.py --checkpoint ... --split test --desaturate   # colour-shortcut probe
+    python evaluate.py --checkpoint ... --split test --desaturate   # color-shortcut probe
 
 --desaturate forces grayscale input regardless of how the model was trained
-(only Flower images actually change, the other 15 classes are already grey).
+(only Flower images actually change, the other 15 classes are already gray).
 """
 from __future__ import annotations
 

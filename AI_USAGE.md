@@ -1,97 +1,91 @@
 # AI Usage
 
-Required by the handout (§4). Written as engineering/research interactions rather
-than a prompt transcript.
+This is the AI reflection the handout asks for (Section 4). I wrote it as a log of how
+the tool and I actually worked, not a transcript.
 
-## Tool
+## What I used
 
-**Claude Code** (Anthropic, model Claude Fable 5.1), run as a terminal agent in this
-repository for scaffolding, boilerplate, debugging, experiment plumbing and
-drafting documentation. All experimental decisions, verification and the final
-write-up are mine.
+**Claude Code** (Anthropic, Claude Fable 5.1) running as a terminal agent inside this repo.
+I used it for setup, boilerplate, debugging, running experiment batches, and drafting docs.
+I made the calls on what to test, checked the results, and wrote the final report.
 
-## Representative examples of how AI assisted
+## How AI helped (representative examples)
 
-1. **Project scaffolding and environment.** The AI set up the `uv` project, chose
-   the CUDA 12.8 PyTorch build needed for an RTX 5080 (Blackwell, `sm_120`) after
-   the system Python 3.14 turned out to be unsupported, and wrote the config-driven
-   `train.py` / `evaluate.py` / `predict.py` pipeline with YAML inheritance, CSV +
-   TensorBoard logging and best-validation checkpointing.
-   *Verification:* I ran a 2-epoch smoke test of the starter network through the
-   new pipeline and checked that `evaluate.py` on the same checkpoint reproduced
-   the training-time validation number before any real experiment was trusted.
+1. **Setup and the training pipeline.** It set up the `uv` project, figured out that my
+   system Python 3.14 wasn't supported by PyTorch yet and that my RTX 5080 needed the CUDA
+   12.8 build, and wrote the config-driven `train.py` / `evaluate.py` / `predict.py` with
+   YAML config inheritance, CSV and TensorBoard logging, and best-validation checkpointing.
+   Before I trusted any of it, we ran a 2-epoch smoke test of the starter network through
+   the new code and confirmed `evaluate.py` reproduced the same validation number the
+   training loop printed.
 
-2. **Dataset inspection script.** The AI wrote `scripts/inspect_dataset.py`
-   (per-class counts, PIL colour mode, size histogram, md5 and perceptual-hash
-   duplicate check). Its output is what revealed that the 15 scene classes are
-   grayscale and only Flower is RGB, and that six exact duplicate pairs exist in
-   the training set. The split script keeps duplicates on one side as a result.
+2. **Dataset inspection.** It wrote `scripts/inspect_dataset.py` (class counts, PIL color
+   mode, image sizes, md5 and perceptual-hash duplicate checks). That script is how we
+   found out that the 15 scene classes are all grayscale and only Flower is in color, and
+   that the training set has six exact duplicate pairs. The split script keeps those
+   duplicates on one side because of that.
 
-3. **Run-summary tooling.** `scripts/summarise_runs.py` aggregates every run's
-   `metrics.json` into a mean ± std table over seeds. The report's experiment table
-   is generated from it rather than typed by hand, so numbers are traceable to
-   run directories.
+3. **Results table generation.** `scripts/summarize_runs.py` pulls every run's
+   `metrics.json` into a mean ± std table across seeds. The experiment table in the report
+   comes from that script, so every number traces back to a run directory.
 
-4. **Experiment batching.** The AI drafted the sequence of controlled experiments
-   (augmentation ladder, capacity, recipe knobs) as config files and ran them as
-   background batches while I watched the curves in TensorBoard and asked
-   questions about what each curve meant.
+4. **Running controlled experiments.** It turned the experiment plan into config files
+   (augmentation ladder, model capacity, recipe knobs) and ran them as background batches
+   while I watched the curves in TensorBoard and asked what they meant.
 
-5. **Explaining concepts.** Because I am new to computer vision, I used the AI to
-   explain terms as they came up (fine-tuning vs linear probe, warm-up + cosine
-   schedules, label smoothing, EMA, why SGD vs AdamW). Those explanations shaped
-   which knobs I asked to have tested.
+5. **Explaining things.** I'm new to computer vision, so I had it explain terms as they came
+   up: fine-tuning vs a linear probe, warmup + cosine schedules, label smoothing, EMA, SGD vs
+   AdamW. Those explanations are what made me pick the knobs we ended up testing.
 
-## Incorrect / ineffective / questionable AI suggestions
+## Where the AI was wrong or not helpful
 
-### 1. Self-deadlocking experiment queue
-- **Suggestion:** To chain experiment batches on the single GPU, the AI wrote a
-  background shell loop that waited `until` the previous batch's last
-  `metrics.json` existed *and* `pgrep -f "train.py --config"` found no process.
-- **Why it looked plausible:** Standard "wait until the GPU is free" idiom.
-- **What was wrong:** The waiting shell's own command line contained the string
-  `train.py --config`, so `pgrep -f` always matched the waiter itself. Both queued
-  batches sat idle for ~20 minutes with the GPU at 0 % while the AI reported them
-  as "queued" and "running automatically".
-- **How I detected it:** I asked for a progress check. No new run directories had
-  appeared and `nvidia-smi` showed no utilisation, contradicting the status.
-- **What was done instead:** Killed both waiters and launched one sequential job.
-  Lesson: an assistant's status claim is not evidence; check artefacts (run
-  directories, GPU utilisation, TensorBoard) before believing "running".
+### 1. An experiment queue that deadlocked itself
+- **What it did:** To chain experiment batches on my one GPU, it wrote a background shell
+  loop that waited until the last `metrics.json` from the previous batch existed *and*
+  `pgrep -f "train.py --config"` found no running process.
+- **Why it seemed fine:** That's the normal "wait for the GPU to free up" pattern.
+- **What was actually wrong:** The waiting shell's own command line contained the string
+  `train.py --config`, so `pgrep` always matched the waiter itself. Two batches (the seed
+  replication and the ConvNeXt recipe sweep) sat idle for about 20 minutes with the GPU at
+  0% while the AI told me they were "queued" and "running automatically".
+- **How I caught it:** I asked for a progress check. No new run folders had shown up and
+  `nvidia-smi` showed nothing running, which didn't match what it was telling me.
+- **Fix:** Killed both waiters and launched one sequential job. Takeaway: a status update
+  from the assistant isn't evidence. Check the run folders, GPU usage, or TensorBoard.
 
-### 2. "40 epochs helps" from a single seed
-- **Suggestion:** After the first ConvNeXt-T knob sweep, the AI ranked a 40-epoch
-  schedule as the second-best knob (+1.1 points) and proposed folding it into the
-  final recipe.
-- **What was wrong:** With seeds 1 and 2 the 40-epoch run averaged 96.3 ± 0.9, i.e.
-  no better than the 20-epoch base (96.2 ± 0.1) and noisier. The single-seed gain
-  was luck.
-- **How detected:** The replication step I had insisted on earlier for exactly this
-  reason. The AI's own earlier analysis had said single-seed differences under
-  ~3 points are noise, and then it ranked knobs by single seeds anyway.
-- **Outcome:** The final recipe keeps 40 epochs only because EMA benefits from the
-  longer averaging window; it is documented as "within noise", not as a gain.
+### 2. "40 epochs helps," based on one seed
+- **What it did:** After the first ConvNeXt-T knob sweep it ranked a 40-epoch schedule as
+  the second-best change (+1.1 points) and suggested putting it in the final recipe.
+- **What was actually wrong:** With seeds 1 and 2 the 40-epoch run averaged 96.3 ± 0.9,
+  no better than the 20-epoch base (96.2 ± 0.1) and noisier. The single-seed number was
+  luck.
+- **How I caught it:** The seed replication step we had planned for exactly this reason.
+  The AI had itself said earlier that single-seed differences under about 3 points are
+  noise, then ranked knobs by single seeds anyway.
+- **Outcome:** The final recipe keeps 40 epochs only because the EMA benefits from a longer
+  averaging window. It's documented as "within noise," not as a gain.
 
-## Decisions I made rather than accepting the AI recommendation
+## Decisions I made (not just accepted)
 
-- **Grayscale input as the primary pipeline.** When the inspection showed that
-  only Flower is in colour, the AI presented both options (RGB for maximum
-  leaderboard accuracy, or grayscale for an honest 16-way recogniser) and left the
-  choice to me. I chose grayscale as the default and asked for the RGB model to be
-  kept as an ablation with a desaturation probe. The probe showed the RGB model
-  drops from 100 % to 30 % on Flower when colour is removed, while the grayscale
-  model is unaffected, which became a central finding of the report.
-- **Backbone scope.** I chose to centre the comparison on ResNet-18 vs ResNet-50
-  vs ConvNeXt-Tiny with ImageNet initialisation and to treat Places365 only as a
-  stretch goal, rather than spreading the ~24 hours available across more
-  architectures.
-- **Selecting on 3-seed means, not best single run.** Final configuration was
-  chosen by mean validation accuracy over three seeds; the submitted checkpoint is
-  then the best-validation seed of that configuration, and the sibling seeds'
-  test accuracies are reported alongside it.
+- **Grayscale input as the main pipeline.** Once inspection showed only Flower is in color,
+  the AI laid out both options (RGB for max leaderboard accuracy vs grayscale for an honest
+  16-way classifier) and left it to me. I picked grayscale as the default and asked to keep
+  the RGB model as an ablation with a desaturation test. That test showed the RGB model
+  drops from 100% to 30% on Flower when color is removed while the grayscale model doesn't
+  move, which became one of the main findings in the report.
+- **Backbone scope.** I chose to focus on ResNet-18 vs ResNet-50 vs ConvNeXt-Tiny with
+  ImageNet weights and treat Places365 as a stretch goal, instead of spreading the roughly
+  24 hours I had across more architectures.
+- **Pick the final config by 3-seed mean, not best single run.** The final configuration
+  was chosen on mean validation accuracy over three seeds. The submitted checkpoint is the
+  best-validation seed of that config, and the other two seeds' test accuracies are
+  reported next to it.
+- **Semi-supervised twist.** The teacher-student (EMA teacher) experiment on a low-label
+  split was my idea; the AI's role was to point out it isn't contrastive learning, to
+  rule out using the test images as the unlabeled pool, and to implement it.
 
-## Habit followed when accepting generated code
+## Habit I tried to keep
 
-Before running AI-written code: what do I expect it to do, what tensor-shape or
-data assumption does it make, how will I know if it is wrong, and what experiment
-distinguishes a real improvement from noise?
+Before running generated code: what do I expect it to do, what is it assuming about the
+data or tensor shapes, how would I know if it's wrong, and what experiment would tell a
+real improvement apart from noise?

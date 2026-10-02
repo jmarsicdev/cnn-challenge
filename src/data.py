@@ -1,11 +1,11 @@
 """Dataset + transform presets.
 
-Colour modes
-    rgb   : images as stored (15 scene classes are grey, Flower is colour)
+Color modes
+    rgb   : images as stored (15 scene classes are gray, Flower is color)
     gray  : everything converted to grayscale, replicated to 3 channels
     gray1 : single-channel grayscale (starter-notebook style)
 
-Augmentation presets (train only; eval is always resize/crop + normalise)
+Augmentation presets (train only; eval is always resize/crop + normalize)
     none   : same as eval
     light  : RandomResizedCrop + horizontal flip
     medium : light + TrivialAugmentWide
@@ -50,7 +50,7 @@ def build_transforms(img_size: int, color: str, aug: str, train: bool,
     else:
         if resize_mode == "squash":
             ops.append(T.Resize((img_size, img_size)))
-        else:  # resize shorter side then centre crop (standard ImageNet eval)
+        else:  # resize shorter side then center crop (standard ImageNet eval)
             ops += [T.Resize(int(round(img_size / 0.875))), T.CenterCrop(img_size)]
 
     ops.append(T.ToTensor())
@@ -121,3 +121,62 @@ def build_loaders(cfg: dict, data_root: Path = Path("data"), split_file: Path = 
                                             drop_last=False)
     bs = cfg["batch_size"]
     return (mk(ds_train, True, bs), mk(ds_val, False, bs * 2), mk(ds_test, False, bs * 2)), classes
+
+
+# ---------------------------------------------------------------------------
+# Semi-supervised support (teacher-student / FixMatch-style)
+# ---------------------------------------------------------------------------
+class TwoViewDataset(Dataset):
+    """Unlabeled pool: returns (weak_view, strong_view, hidden_label).
+
+    The hidden label is NEVER used for training; it is returned only so the
+    training loop can report pseudo-label accuracy as a diagnostic.
+    """
+
+    def __init__(self, root: Path, items: list[tuple[str, int]], tf_weak, tf_strong):
+        self.root, self.items, self.tf_weak, self.tf_strong = Path(root), items, tf_weak, tf_strong
+
+    def __len__(self):
+        return len(self.items)
+
+    def __getitem__(self, i):
+        rel, y = self.items[i]
+        with Image.open(self.root / rel) as im:
+            im = im.convert("RGB")
+        return self.tf_weak(im), self.tf_strong(im), y
+
+
+def load_label_split(path: Path, classes: list[str]):
+    """splits/semisup_k<k>.json -> (labeled_items, unlabeled_items)."""
+    d = json.loads(Path(path).read_text())
+    c2i = {c: i for i, c in enumerate(classes)}
+    to_items = lambda rels: [(r, c2i[r.split("/")[0]]) for r in rels]
+    return to_items(d["labeled"]), to_items(d["unlabeled"])
+
+
+def build_semisup_loaders(cfg: dict, label_split: Path, data_root: Path = Path("data"),
+                          split_file: Path = Path("splits/val_split.json")):
+    """Returns (labeled_loader, unlabeled_loader_or_None, val_loader), classes."""
+    classes = list_classes(data_root / "train")
+    _, va_items = load_split(split_file, classes)
+    lab_items, unl_items = load_label_split(label_split, classes)
+
+    common = dict(img_size=cfg["img_size"], color=cfg["color"], resize_mode=cfg.get("resize_mode", "crop"))
+    rrc = cfg.get("rrc_scale", (0.35, 1.0))
+    tf_lab = build_transforms(aug=cfg["aug"], train=True, rrc_scale=rrc, **common)
+    tf_eval = build_transforms(aug="none", train=False, **common)
+
+    nw, pin = cfg.get("num_workers", 8), torch.cuda.is_available()
+    mk = lambda ds, shuffle, bs, drop: DataLoader(ds, batch_size=bs, shuffle=shuffle, num_workers=nw,
+                                                  pin_memory=pin, persistent_workers=nw > 0, drop_last=drop)
+    bs = cfg["batch_size"]
+    lab_loader = mk(ListDataset(data_root / "train", lab_items, tf_lab), True, bs, True)
+    val_loader = mk(ListDataset(data_root / "train", va_items, tf_eval), False, bs * 2, False)
+
+    unl_loader = None
+    if cfg.get("mode", "supervised") != "supervised":
+        tf_weak = build_transforms(aug=cfg.get("weak_aug", "light"), train=True, rrc_scale=rrc, **common)
+        tf_strong = build_transforms(aug=cfg.get("strong_aug", "strong"), train=True, rrc_scale=rrc, **common)
+        unl_loader = mk(TwoViewDataset(data_root / "train", unl_items, tf_weak, tf_strong),
+                        True, bs * cfg.get("mu", 3), True)
+    return (lab_loader, unl_loader, val_loader), classes

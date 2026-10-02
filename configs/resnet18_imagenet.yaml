@@ -1,4 +1,4 @@
-# Same network, ImageNet-1k initialisation, full fine-tune. The "does pretraining matter" test.
+# Same network, ImageNet-1k initialization, full fine-tune. The "does pretraining matter" test.
 _base_: base.yaml
 model: resnet18
 pretrained: imagenet

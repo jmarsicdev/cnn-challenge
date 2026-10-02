@@ -6,7 +6,7 @@ import timm
 
 
 class TNet(nn.Module):
-    """The deliberately weak starter-notebook CNN (1x64x64 grey input)."""
+    """The deliberately weak starter-notebook CNN (1x64x64 gray input)."""
 
     def __init__(self, num_classes=16, in_chans=1):
         super().__init__()

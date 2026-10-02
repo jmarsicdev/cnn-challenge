@@ -1,0 +1,5 @@
+# Supervised floor: only 10 labeled images per class, no unlabeled data. (~1000 steps)
+_base_: semisup_base.yaml
+labels_per_class: 10
+epochs: 200
+warmup_epochs: 5

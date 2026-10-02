@@ -1,0 +1,6 @@
+# Teacher-student: 20 labels/class + the other 100 per class as an unlabeled pool.
+_base_: semisup_base.yaml
+mode: teacher_student
+labels_per_class: 20
+epochs: 60
+warmup_epochs: 2

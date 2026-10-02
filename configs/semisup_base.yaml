@@ -1,0 +1,13 @@
+# Low-label regime. Inherits the final supervised recipe; batch 32 because the labeled set is small.
+_base_: convnext_tiny_final_a.yaml
+batch_size: 32
+mode: supervised
+labels_per_class: 20
+# teacher-student knobs (ignored in supervised mode)
+mu: 3                 # unlabeled images per labeled image in each step
+tau: 0.8              # confidence threshold for pseudo-labels (label smoothing 0.1 caps max prob near 0.9)
+lambda_u: 1.0         # weight of the unsupervised loss
+burnin_epochs: 15     # supervised-only epochs before pseudo-labeling starts
+weak_aug: light
+strong_aug: strong
+pseudo_source: teacher

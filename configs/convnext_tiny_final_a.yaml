@@ -1,5 +1,5 @@
 # Final candidate A: the three knobs that individually helped ConvNeXt-T, combined.
-# label smoothing 0.1 + 40-epoch cosine + EMA weights. Light augmentation, grey input.
+# label smoothing 0.1 + 40-epoch cosine + EMA weights. Light augmentation, gray input.
 _base_: convnext_tiny_imagenet.yaml
 label_smoothing: 0.1
 epochs: 40

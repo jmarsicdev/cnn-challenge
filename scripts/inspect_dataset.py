@@ -1,6 +1,6 @@
-"""Summarise the dataset: per-class counts, image sizes, colour mode, and
+"""Summarize the dataset: per-class counts, image sizes, color mode, and
 train/test near-duplicates. Run before any training so decisions about
-resolution, colour and the validation split are grounded in the real data.
+resolution, color and the validation split are grounded in the real data.
 
 Usage:
     python scripts/inspect_dataset.py --data data
@@ -35,8 +35,8 @@ def dhash(img: Image.Image, size: int = 8) -> str:
     return "".join(str(b) for b in bits)
 
 
-def is_colour(img: Image.Image, sample: int = 64, tol: int = 8) -> bool:
-    """True if the image has meaningful chroma (not a grey image stored as RGB)."""
+def is_color(img: Image.Image, sample: int = 64, tol: int = 8) -> bool:
+    """True if the image has meaningful chroma (not a gray image stored as RGB)."""
     if img.mode in ("L", "1", "LA", "I;16", "I"):
         return False
     rgb = img.convert("RGB").resize((sample, sample))
@@ -46,11 +46,11 @@ def is_colour(img: Image.Image, sample: int = 64, tol: int = 8) -> bool:
     return False
 
 
-def summarise(split: str, split_dir: Path):
+def summarize(split: str, split_dir: Path):
     counts: Counter = Counter()
     sizes: Counter = Counter()
     modes: Counter = Counter()
-    colour_by_cls: dict = defaultdict(lambda: [0, 0])
+    color_by_cls: dict = defaultdict(lambda: [0, 0])
     hashes: dict = {}
     md5s: dict = {}
     widths, heights = [], []
@@ -61,14 +61,14 @@ def summarise(split: str, split_dir: Path):
             widths.append(w); heights.append(h)
             sizes[(w, h)] += 1
             modes[im.mode] += 1
-            colour_by_cls[cls][int(is_colour(im))] += 1
+            color_by_cls[cls][int(is_color(im))] += 1
             hashes[f] = dhash(im)
         md5s[f] = hashlib.md5(f.read_bytes()).hexdigest()
     n = sum(counts.values())
     print(f"\n=== {split}: {n} images, {len(counts)} classes ===")
     for cls in sorted(counts):
-        grey, col = colour_by_cls[cls]
-        print(f"  {cls:<14} {counts[cls]:>5}   colour={col:>4} grey={grey:>4}")
+        gray, col = color_by_cls[cls]
+        print(f"  {cls:<14} {counts[cls]:>5}   color={col:>4} gray={gray:>4}")
     print(f"  modes: {dict(modes)}")
     if widths:
         print(f"  width  min/median/max: {min(widths)}/{sorted(widths)[len(widths)//2]}/{max(widths)}")
@@ -81,8 +81,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", type=Path, default=Path("data"))
     args = ap.parse_args()
-    tr_h, tr_md5 = summarise("train", args.data / "train")
-    te_h, te_md5 = summarise("test", args.data / "test")
+    tr_h, tr_md5 = summarize("train", args.data / "train")
+    te_h, te_md5 = summarize("test", args.data / "test")
 
     # exact duplicates
     inv = defaultdict(list)

@@ -1,4 +1,4 @@
-# Starter-notebook baseline reproduced in this codebase (same net, preprocessing, optimiser).
+# Starter-notebook baseline reproduced in this codebase (same net, preprocessing, optimizer).
 _base_: base.yaml
 model: tnet
 pretrained: none
