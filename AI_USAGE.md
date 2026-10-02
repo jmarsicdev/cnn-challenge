@@ -28,6 +28,21 @@ Record at least one. Template:
 - **How I detected it (test, shape check, ablation, reading the docs):**
 - **What I did instead:**
 
+### 1. Self-deadlocking experiment queue (2026-10-01)
+- **Suggestion:** To chain experiment batches on the single GPU, the AI wrote a
+  background shell loop that waited `until` the previous batch's last
+  `metrics.json` existed *and* `pgrep -f "train.py --config"` found no process.
+- **Why it looked plausible:** Standard "wait for the GPU to be free" idiom.
+- **What was wrong:** The waiting shell's own command line contained the string
+  `train.py --config`, so `pgrep -f` always matched the waiter itself. Both queued
+  batches (seed replication, ConvNeXt recipe sweep) sat idle for ~20 minutes with
+  the GPU unused while the AI reported them as "queued".
+- **How detected:** I asked for a progress check; no run directories had appeared
+  and `nvidia-smi` showed 0% utilisation.
+- **What was done instead:** Killed both waiters and launched a single sequential
+  job. Lesson: a status claim ("queued", "running") from the assistant is not
+  evidence; check the artefacts (run dirs, GPU utilisation).
+
 ## Decisions I made (not simply accepted from the AI)
 
 Record at least one important experimental or architectural decision. Template:
