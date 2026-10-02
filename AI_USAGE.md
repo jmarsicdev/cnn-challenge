@@ -37,11 +37,6 @@ write-up are mine.
    background batches while I watched the curves in TensorBoard and asked
    questions about what each curve meant.
 
-5. **Explaining concepts.** Because I am new to computer vision, I used the AI to
-   explain terms as they came up (fine-tuning vs linear probe, warm-up + cosine
-   schedules, label smoothing, EMA, why SGD vs AdamW). Those explanations shaped
-   which knobs I asked to have tested.
-
 ## Incorrect / ineffective / questionable AI suggestions
 
 ### 1. Self-deadlocking experiment queue
@@ -54,10 +49,10 @@ write-up are mine.
   batches sat idle for ~20 minutes with the GPU at 0 % while the AI reported them
   as "queued" and "running automatically".
 - **How I detected it:** I asked for a progress check. No new run directories had
-  appeared and `nvidia-smi` showed no utilisation, contradicting the status.
+  appeared and `nvidia-smi` showed no utilization, contradicting the status.
 - **What was done instead:** Killed both waiters and launched one sequential job.
-  Lesson: an assistant's status claim is not evidence; check artefacts (run
-  directories, GPU utilisation, TensorBoard) before believing "running".
+  Lesson: an assistant's status claim is not evidence; check artifacts (run
+  directories, GPU utilization, TensorBoard) before believing "running".
 
 ### 2. "40 epochs helps" from a single seed
 - **Suggestion:** After the first ConvNeXt-T knob sweep, the AI ranked a 40-epoch
@@ -75,16 +70,15 @@ write-up are mine.
 ## Decisions I made rather than accepting the AI recommendation
 
 - **Grayscale input as the primary pipeline.** When the inspection showed that
-  only Flower is in colour, the AI presented both options (RGB for maximum
-  leaderboard accuracy, or grayscale for an honest 16-way recogniser) and left the
+  only Flower is in color, the AI presented both options (RGB for maximum
+  leaderboard accuracy, or grayscale for an honest 16-way recognizer) and left the
   choice to me. I chose grayscale as the default and asked for the RGB model to be
-  kept as an ablation with a desaturation probe. The probe showed the RGB model
-  drops from 100 % to 30 % on Flower when colour is removed, while the grayscale
+  kept as an ablation with a de-saturation probe. The probe showed the RGB model
+  drops from 100 % to 30 % on Flower when color is removed, while the grayscale
   model is unaffected, which became a central finding of the report.
-- **Backbone scope.** I chose to centre the comparison on ResNet-18 vs ResNet-50
-  vs ConvNeXt-Tiny with ImageNet initialisation and to treat Places365 only as a
-  stretch goal, rather than spreading the ~24 hours available across more
-  architectures.
+- **Backbone scope.** I chose to center the comparison on ResNet-18 vs ResNet-50
+  vs ConvNeXt-Tiny with ImageNet initialization and to treat Places365 only as a
+  stretch goal.
 - **Selecting on 3-seed means, not best single run.** Final configuration was
   chosen by mean validation accuracy over three seeds; the submitted checkpoint is
   then the best-validation seed of that configuration, and the sibling seeds'
