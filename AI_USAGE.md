@@ -33,10 +33,6 @@ I made the calls on what to test, checked the results, and wrote the final repor
    (augmentation ladder, model capacity, recipe knobs) and ran them as background batches
    while I watched the curves in TensorBoard and asked what they meant.
 
-5. **Explaining things.** I'm new to computer vision, so I had it explain terms as they came
-   up: fine-tuning vs a linear probe, warmup + cosine schedules, label smoothing, EMA, SGD vs
-   AdamW. Those explanations are what made me pick the knobs we ended up testing.
-
 ## Where the AI was wrong or not helpful
 
 ### 1. An experiment queue that deadlocked itself
@@ -70,12 +66,11 @@ I made the calls on what to test, checked the results, and wrote the final repor
 - **Grayscale input as the main pipeline.** Once inspection showed only Flower is in color,
   the AI laid out both options (RGB for max leaderboard accuracy vs grayscale for an honest
   16-way classifier) and left it to me. I picked grayscale as the default and asked to keep
-  the RGB model as an ablation with a desaturation test. That test showed the RGB model
+  the RGB model as an ablation with a de-saturation test. That test showed the RGB model
   drops from 100% to 30% on Flower when color is removed while the grayscale model doesn't
   move, which became one of the main findings in the report.
 - **Backbone scope.** I chose to focus on ResNet-18 vs ResNet-50 vs ConvNeXt-Tiny with
-  ImageNet weights and treat Places365 as a stretch goal, instead of spreading the roughly
-  24 hours I had across more architectures.
+  ImageNet weights and treat Places365 as a stretch goal.
 - **Pick the final config by 3-seed mean, not best single run.** The final configuration
   was chosen on mean validation accuracy over three seeds. The submitted checkpoint is the
   best-validation seed of that config, and the other two seeds' test accuracies are
