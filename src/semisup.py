@@ -69,6 +69,7 @@ def train_teacher_student(cfg: dict, model: nn.Module, lab_loader, unl_loader, v
         csv.DictWriter(f, fields).writeheader()
     tb = SummaryWriter(log_dir=str(run_dir / "tb"))
 
+    eval_every = int(cfg.get("eval_every", 1))
     t0 = time.time()
     for epoch in range(1, epochs + 1):
         model.train()
@@ -115,24 +116,32 @@ def train_teacher_student(cfg: dict, model: nn.Module, lab_loader, unl_loader, v
             teacher.update(model)
             s_sup += loss_sup.item(); s_unsup += loss_unsup.item()
 
-        student_val = evaluate(model, val_loader, device)
-        teacher_val = evaluate(teacher.module, val_loader, device)
-        if teacher_val["acc"] > best["acc"]:
-            best = {"acc": teacher_val["acc"], "epoch": epoch, "val_loss": teacher_val["loss"],
-                    "state": copy.deepcopy(teacher.module.state_dict())}
+        do_eval = (epoch % eval_every == 0) or epoch == epochs or epoch == burnin
+        student_val = teacher_val = None
+        if do_eval:
+            student_val = evaluate(model, val_loader, device)
+            teacher_val = evaluate(teacher.module, val_loader, device)
+            if teacher_val["acc"] > best["acc"]:
+                best = {"acc": teacher_val["acc"], "epoch": epoch, "val_loss": teacher_val["loss"],
+                        "state": copy.deepcopy(teacher.module.state_dict())}
 
         row = {"epoch": epoch, "lr": opt.param_groups[0]["lr"], "sup_loss": s_sup / steps_per_epoch,
                "unsup_loss": s_unsup / steps_per_epoch, "mask_rate": n_mask / max(1, n_unl),
-               "pseudo_acc": n_pseudo_correct / max(1, n_mask), "student_val_acc": student_val["acc"],
-               "val_acc": teacher_val["acc"], "val_loss": teacher_val["loss"], "sec": time.time() - te}
+               "pseudo_acc": n_pseudo_correct / max(1, n_mask),
+               "student_val_acc": student_val["acc"] if student_val else "",
+               "val_acc": teacher_val["acc"] if teacher_val else "",
+               "val_loss": teacher_val["loss"] if teacher_val else "", "sec": time.time() - te}
         with hist_path.open("a", newline="") as f:
             csv.DictWriter(f, fields).writerow(row)
         for k in fields[1:-1]:
-            tb.add_scalar(k, row[k], epoch)
+            if row[k] != "":
+                tb.add_scalar(k, row[k], epoch)
         tb.flush()
-        log(f"ep {epoch:03d}/{epochs} lr {row['lr']:.2e} | sup {row['sup_loss']:.3f} unsup {row['unsup_loss']:.3f} "
-            f"| mask {row['mask_rate']:.2f} pseudo-acc {row['pseudo_acc']:.3f} "
-            f"| val student {student_val['acc']:.4f} teacher {teacher_val['acc']:.4f} | {row['sec']:.0f}s")
+        msg = (f"ep {epoch:03d}/{epochs} lr {row['lr']:.2e} | sup {row['sup_loss']:.3f} unsup {row['unsup_loss']:.3f} "
+               f"| mask {row['mask_rate']:.2f} pseudo-acc {row['pseudo_acc']:.3f}")
+        if teacher_val:
+            msg += f" | val student {student_val['acc']:.4f} teacher {teacher_val['acc']:.4f}"
+        log(msg + f" | {row['sec']:.0f}s")
 
     best["minutes"] = (time.time() - t0) / 60
     tb.close()

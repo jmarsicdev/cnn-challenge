@@ -38,3 +38,4 @@ report/*.fdb_latexmk
 
 # local working notes, not part of the submission
 PLAN.md
+docs/report_draft.md

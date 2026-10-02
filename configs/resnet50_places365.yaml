@@ -1,0 +1,4 @@
+# Pretraining source: Places365 (a scene dataset) vs ImageNet-1k, same ResNet-50 and recipe.
+# Weights: MIT CSAIL resnet50_places365.pth.tar (torchvision-style keys), 365-way head dropped.
+_base_: resnet50_imagenet.yaml
+pretrained: places365

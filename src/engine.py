@@ -102,6 +102,7 @@ def train(cfg: dict, model: nn.Module, train_loader, val_loader, device, run_dir
         csv.DictWriter(f, fields).writeheader()
 
     tb = SummaryWriter(log_dir=str(run_dir / "tb"))
+    eval_every = int(cfg.get("eval_every", 1))
     t0 = time.time()
     for epoch in range(1, epochs + 1):
         model.train()
@@ -128,29 +129,37 @@ def train(cfg: dict, model: nn.Module, train_loader, val_loader, device, run_dir
             tot_correct += (logits.argmax(1) == y).sum().item()
             n += y.size(0)
 
-        val = evaluate(model, val_loader, device)
-        ema_val = evaluate(ema.module, val_loader, device) if ema is not None else None
-        # model selection: EMA weights if enabled, else raw weights
-        sel_acc, sel_loss = (ema_val["acc"], ema_val["loss"]) if ema is not None else (val["acc"], val["loss"])
-        if sel_acc > best["acc"]:
-            src = ema.module if ema is not None else model
-            best = {"acc": sel_acc, "epoch": epoch, "val_loss": sel_loss,
-                    "state": copy.deepcopy(src.state_dict())}
+        do_eval = (epoch % eval_every == 0) or epoch == epochs
+        val = ema_val = None
+        if do_eval:
+            val = evaluate(model, val_loader, device)
+            ema_val = evaluate(ema.module, val_loader, device) if ema is not None else None
+            # model selection: EMA weights if enabled, else raw weights
+            sel_acc, sel_loss = (ema_val["acc"], ema_val["loss"]) if ema is not None else (val["acc"], val["loss"])
+            if sel_acc > best["acc"]:
+                src = ema.module if ema is not None else model
+                best = {"acc": sel_acc, "epoch": epoch, "val_loss": sel_loss,
+                        "state": copy.deepcopy(src.state_dict())}
 
         row = {"epoch": epoch, "lr": opt.param_groups[0]["lr"], "train_loss": tot_loss / n,
-               "train_acc": tot_correct / n, "val_loss": val["loss"], "val_acc": val["acc"],
-               "ema_val_acc": ema_val["acc"] if ema_val else "", "sec": time.time() - te}
+               "train_acc": tot_correct / n, "val_loss": val["loss"] if val else "",
+               "val_acc": val["acc"] if val else "", "ema_val_acc": ema_val["acc"] if ema_val else "",
+               "sec": time.time() - te}
         with hist_path.open("a", newline="") as f:
             csv.DictWriter(f, fields).writerow(row)
-        for k in ("train_loss", "train_acc", "val_loss", "val_acc", "lr"):
+        for k in ("train_loss", "train_acc", "lr"):
             tb.add_scalar(k, row[k], epoch)
+        if val:
+            tb.add_scalar("val_loss", val["loss"], epoch); tb.add_scalar("val_acc", val["acc"], epoch)
+            tb.add_scalar("gap/train_minus_val_acc", row["train_acc"] - val["acc"], epoch)
         if ema_val:
             tb.add_scalar("ema_val_acc", ema_val["acc"], epoch)
-        tb.add_scalar("gap/train_minus_val_acc", row["train_acc"] - val["acc"], epoch)
         tb.flush()
-        log(f"ep {epoch:03d}/{epochs} lr {row['lr']:.2e} | train loss {row['train_loss']:.3f} "
-            f"acc {row['train_acc']:.3f} | val loss {val['loss']:.3f} acc {val['acc']:.4f}"
-            + (f" | ema {ema_val['acc']:.4f}" if ema_val else "") + f" | {row['sec']:.0f}s")
+        msg = (f"ep {epoch:03d}/{epochs} lr {row['lr']:.2e} | train loss {row['train_loss']:.3f} "
+               f"acc {row['train_acc']:.3f}")
+        if val:
+            msg += f" | val loss {val['loss']:.3f} acc {val['acc']:.4f}" + (f" | ema {ema_val['acc']:.4f}" if ema_val else "")
+        log(msg + f" | {row['sec']:.0f}s")
 
     best["minutes"] = (time.time() - t0) / 60
     tb.add_hparams({k: (v if isinstance(v, (int, float, str, bool)) else str(v)) for k, v in cfg.items()},
