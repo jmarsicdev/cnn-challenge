@@ -1,0 +1,4 @@
+# From-scratch ResNet-18 was still improving at epoch 40; give it a fair 100-epoch budget.
+_base_: resnet18_scratch.yaml
+epochs: 100
+warmup_epochs: 3

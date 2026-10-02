@@ -1,0 +1,5 @@
+# Augmentation ladder rung 4: medium + Mixup/CutMix. Hypothesis: hurts short fine-tunes.
+_base_: resnet18_imagenet.yaml
+aug: medium
+mixup: 0.2
+cutmix: 1.0

@@ -1,0 +1,3 @@
+# Augmentation ladder rung 3: medium + RandomErasing.
+_base_: resnet18_imagenet.yaml
+aug: strong

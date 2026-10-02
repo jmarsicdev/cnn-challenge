@@ -1,0 +1,6 @@
+# Capacity: ResNet-50 (25.6M params) vs ResNet-18 (11.7M), same recipe.
+_base_: base.yaml
+model: resnet50
+pretrained: imagenet
+lr: 0.0003
+epochs: 20

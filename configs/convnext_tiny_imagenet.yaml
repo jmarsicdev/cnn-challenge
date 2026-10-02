@@ -1,0 +1,7 @@
+# Capacity / modern design: ConvNeXt-T (28.6M params), still a pure CNN.
+_base_: base.yaml
+model: convnext_tiny
+pretrained: imagenet
+lr: 0.0001
+drop_path: 0.1
+epochs: 20
