@@ -1,0 +1,7 @@
+_base_: semisup_r18sc_base.yaml
+mode: teacher_student
+labels_per_class: 20
+epochs: 190
+warmup_epochs: 5
+burnin_epochs: 60
+eval_every: 5

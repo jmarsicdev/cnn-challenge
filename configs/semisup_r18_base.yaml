@@ -1,0 +1,6 @@
+# Low-label study, ResNet-18 arm. Same recipe as the ConvNeXt low-label study except the
+# backbone, so the pretrained-vs-scratch comparison below isolates initialization.
+_base_: semisup_base.yaml
+model: resnet18
+pretrained: imagenet
+lr: 0.0005

@@ -23,13 +23,18 @@ SERIES = {  # fixed categorical order (validated palette slots 1 and 2)
 }
 
 
-def collect(runs: Path):
+def collect(runs: Path, tag: str = "", ref_glob: str = "convnext_tiny_final_a"):
+    """tag="" -> the ConvNeXt study (runs semisup_sup_k*/semisup_ts_k*);
+    tag="r18sc" -> runs semisup_r18sc_sup_k*/semisup_r18sc_ts_k*, etc."""
     pts = defaultdict(lambda: defaultdict(list))  # mode -> k -> [acc]
-    for mf in runs.glob("semisup_*/s*/metrics.json"):
+    pattern = f"semisup_{tag}_*/s*/metrics.json" if tag else "semisup_*/s*/metrics.json"
+    for mf in runs.glob(pattern):
         m = json.loads(mf.read_text())
+        if not tag and m["name"].startswith("semisup_r18"):
+            continue
         if m.get("mode") in SERIES and "fixmatch" not in m["name"]:
             pts[m["mode"]][int(m["labels_per_class"])].append(m["best_val_acc"] * 100)
-    ref = [json.loads(f.read_text())["best_val_acc"] * 100 for f in runs.glob("convnext_tiny_final_a/s*/metrics.json")]
+    ref = [json.loads(f.read_text())["best_val_acc"] * 100 for f in runs.glob(f"{ref_glob}/s*/metrics.json")]
     return pts, ref
 
 
@@ -37,8 +42,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", default="runs")
     ap.add_argument("--out", default="docs/final/lowlabel_curve.png")
+    ap.add_argument("--tag", default="", help="run-name tag, e.g. r18in or r18sc ('' = ConvNeXt study)")
+    ap.add_argument("--ref", default="convnext_tiny_final_a", help="run name for the all-labels ceiling line")
+    ap.add_argument("--title", default="ConvNeXt-T: value of unlabeled images when labels are scarce")
+    ap.add_argument("--ymin", type=float, default=None)
     args = ap.parse_args()
-    pts, ref = collect(Path(args.runs))
+    pts, ref = collect(Path(args.runs), args.tag, args.ref)
 
     fig, ax = plt.subplots(figsize=(5.2, 3.3), dpi=200)
     fig.patch.set_facecolor("#fcfcfb"); ax.set_facecolor("#fcfcfb")
@@ -66,7 +75,9 @@ def main():
     for s in ("left", "bottom"): ax.spines[s].set_color("#c3c2b7")
     ax.tick_params(colors="#52514e", labelsize=8)
     ax.legend(frameon=False, fontsize=8, loc="lower right")
-    ax.set_title("ConvNeXt-T: value of unlabeled images when labels are scarce", fontsize=9.5, loc="left", color="#0b0b0b")
+    ax.set_title(args.title, fontsize=9.5, loc="left", color="#0b0b0b")
+    if args.ymin is not None:
+        ax.set_ylim(bottom=args.ymin)
     fig.tight_layout()
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.out, facecolor=fig.get_facecolor())

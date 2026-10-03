@@ -1,0 +1,5 @@
+_base_: semisup_r18sc_base.yaml
+labels_per_class: 20
+epochs: 300
+warmup_epochs: 15
+eval_every: 6

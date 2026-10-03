@@ -1,0 +1,4 @@
+# Low-label study, ResNet-18 FROM SCRATCH. Only init and the scratch-appropriate lr/budget change.
+_base_: semisup_r18_base.yaml
+pretrained: none
+lr: 0.001
