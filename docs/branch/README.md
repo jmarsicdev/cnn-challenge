@@ -3,7 +3,7 @@
 Post-submission experiments, for interest only. Nothing here is part of the graded submission on `main`.
 All numbers are validation accuracy (%) on the same fixed 480-image split as the main study.
 
-## 1. Does the unlabeled pool matter more without pretraining? (seed 0)
+## 1. Does the unlabeled pool matter more without pretraining?
 
 Same ResNet-18 in both arms; only the initialization differs. Low-label protocol as in the
 main study: keep k labels per class, treat the other training images as an unlabeled pool
@@ -12,11 +12,11 @@ them on strong views, tau 0.8, burn-in first. Budgets: pretrained ~1,000 steps, 
 
 | ResNet-18, labels/class | 10 | 20 | 40 | 120 (all labels) |
 |---|---|---|---|---|
-| ImageNet init, supervised | 83.1 | 86.9 | 91.7 | 93.0 ± 0.8 |
-| ImageNet init, teacher-student | 84.0 | 89.2 | 92.7 | |
-| **gain from unlabeled pool** | +0.8 | +2.3 | +1.0 | |
-| Scratch, supervised | 60.4 | 68.3 | 76.3 | 83.3 (3k steps) / 85.0 (10k steps) |
-| Scratch, teacher-student | 67.9 | 75.8 | 80.6 | |
+| ImageNet init, supervised (3 seeds) | 83.1 ± 1.7 | 87.3 ± 0.4 | 91.9 ± 0.2 | 93.0 ± 0.8 |
+| ImageNet init, teacher-student (3 seeds) | 85.0 ± 1.0 | 88.8 ± 0.6 | 92.4 ± 1.0 | |
+| **gain from unlabeled pool** | +1.9 | +1.5 | +0.5 | |
+| Scratch, supervised, ~3k steps (seed 0) | 60.4 | 68.3 | 76.2 | 83.3 (3k) / 84.8 ± 0.6 (10k, 3 seeds) |
+| Scratch, teacher-student, ~3k steps (seed 0) | 67.9 | 75.8 | 80.6 | |
 | **gain from unlabeled pool** | **+7.5** | **+7.5** | **+4.4** | |
 
 Figures: `lowlabel_r18_imagenet.png`, `lowlabel_r18_scratch.png`.
@@ -33,8 +33,8 @@ Reading it:
   less confident and less accurate than the pretrained one (which reached ~98 % mask rate at
   ~95 % accuracy), so these runs are still limited by pseudo-label quality, and all three
   were still improving at the end of the budget. Extended (~10k-step) runs are in progress.
-- Single seed so far. Seed-to-seed spread for scratch runs is probably larger than the
-  0.6–0.8 seen for pretrained ones; replication pending.
+- Pretrained arm now at 3 seeds: the gains (+1 to +2) are about the size of the seed spread, so they are
+  suggestive, not established. The scratch gains (3 seeds at 10k steps, section 3a) are 5–10x the spread.
 
 ## 2. Distillation into a small custom student (seed 0, 100 epochs ≈ 3k steps)
 
@@ -73,20 +73,20 @@ Reading it: the longer budget lifts the supervised floors by 1–3 points and th
 pseudo-label accuracy at the end is well below its coverage in every case, so confirmation bias remains the
 limiting factor; the fixes listed above are the next experiments if this continues.
 
-### 3b. Distillation at 300 epochs (~9k steps)
+### 3b. Distillation at 300 epochs (~9k steps); 300-epoch column is mean ± std over 3 seeds
 
-| Model, all from scratch | 100 epochs | 300 epochs | Params |
+| Model, all from scratch | 100 epochs (seed 0) | 300 epochs (3 seeds) | Params |
 |---|---|---|---|
-| ResNet-18, labels only | 83.3 | 85.0 | 11.18M |
-| ResNet-18, distilled | 85.2 | 86.0 | 11.18M |
-| SceneNet-S, labels only | 84.0 | 88.7 | 0.86M |
-| SceneNet-S, distilled | 84.8 | 89.0 | 0.86M |
+| ResNet-18, labels only | 83.3 | 84.8 ± 0.6 | 11.18M |
+| ResNet-18, distilled | 85.2 | 86.1 ± 0.1 | 11.18M |
+| SceneNet-S, labels only | 84.0 | 87.6 ± 1.1 | 0.86M |
+| SceneNet-S, distilled | 84.8 | 88.3 ± 0.7 | 0.86M |
 
 (ResNet-18 labels-only at 300 epochs is the `resnet18_scratch_xl` run, 333 epochs.) Best epochs at 300: SceneNet-S labels-only 135, distilled 250.
 
-Reading it: with a long enough schedule the 0.86M-parameter SceneNet-S reaches ~89 % from scratch, above
-ResNet-18 from scratch (85.0) at a 13x smaller parameter count, and the distillation gain shrinks to
-+0.2 points for the student and +1.0 for ResNet-18. The soft targets mostly accelerate
+Reading it (3 seeds): the 0.86M-parameter SceneNet-S reaches 87.6 ± 1.1 from scratch, above
+ResNet-18 from scratch (84.8 ± 0.6) at a 13x smaller parameter count, and the distillation gain is
++0.7 points for the student and +1.3 for ResNet-18 (spreads 0.6–1.1). The soft targets mostly accelerate
 learning rather than raise the ceiling here; the architecture choice mattered more than the teacher.
 
 ## 4. Confirmation-bias fixes (k = 20 labels/class, scratch, ~10k steps, seed 0)
@@ -115,3 +115,6 @@ Reading it:
   so its 'pseudo-label accuracy' is just teacher accuracy on the pool (0.74).
 - Next experiments, not yet run: distribution alignment at k = 10 and 40, DA + tau 0.9, DA with the slower teacher,
   and a per-class pseudo-label histogram in the diagnostics to see the imbalance directly.
+
+---
+*Round 2 finished 2026-10-03 12:36. Paused here at the user's request; next candidates are listed in section 4.*
