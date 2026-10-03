@@ -88,3 +88,30 @@ Reading it: with a long enough schedule the 0.86M-parameter SceneNet-S reaches ~
 ResNet-18 from scratch (85.0) at a 13x smaller parameter count, and the distillation gain shrinks to
 +0.2 points for the student and +1.0 for ResNet-18. The soft targets mostly accelerate
 learning rather than raise the ceiling here; the architecture choice mattered more than the teacher.
+
+## 4. Confirmation-bias fixes (k = 20 labels/class, scratch, ~10k steps, seed 0)
+
+The baseline teacher ended at 91 % coverage of the pool but only 76 % pseudo-label accuracy (section 3a).
+Each row changes one thing relative to `semisup_r18sc_ts_k20_long`.
+
+| Variant | Val acc | Best epoch | Teacher at end: coverage / pseudo-label acc |
+|---|---|---|---|
+| Baseline: tau 0.8, EMA 0.995, hard pseudo-labels | 76.2 | 486 | 0.91 / 0.756 |
+| Threshold tau 0.95 | 70.8 | 252 | 0.64 / 0.817 |
+| Slower teacher, EMA 0.999 | 76.5 | 474 | 0.85 / 0.800 |
+| **Distribution alignment** (teacher probs rebalanced to the uniform prior) | **81.0** | 480 | 0.92 / 0.822 |
+| All three combined | 72.7 | 612 | 0.23 / 0.966 |
+| Mean Teacher soft MSE consistency, no threshold, lambda 10 ramped, EMA 0.999 | 77.7 | 564 | 1.00 / 0.742 |
+
+Reading it:
+- Distribution alignment is the fix: +4.8 points, with coverage unchanged (0.92) and pseudo-label accuracy up
+  from 0.76 to 0.82. The failure mode was class imbalance in the pseudo-labels: the teacher over-predicted some
+  classes, the student learned the bias, the averaged teacher inherited it. Rebalancing to the known uniform prior
+  breaks that loop. (Classes are exactly balanced here, which is the easiest case for this fix.)
+- A stricter threshold went the wrong way. At tau 0.95 the teacher labeled only ~17 % of the pool when the run
+  peaked, so the student saw too little unlabeled data; accuracy of the few labels was high (97 %) but useless.
+  Combining all three inherited this problem (coverage 0.23).
+- A slower teacher alone did nothing (+0.3). Soft MSE consistency without a threshold gave +1.5 and never filters,
+  so its 'pseudo-label accuracy' is just teacher accuracy on the pool (0.74).
+- Next experiments, not yet run: distribution alignment at k = 10 and 40, DA + tau 0.9, DA with the slower teacher,
+  and a per-class pseudo-label histogram in the diagnostics to see the imbalance directly.
