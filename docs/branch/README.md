@@ -55,3 +55,4 @@ versions are queued.
 
 Queue: `queues/extended_scratch_s0.txt`, log: `runs/queue_extended_scratch_s0.log`.
 Done so far: all-labels scratch ceiling at ~10k steps = **85.0** (vs 83.3 at 3k).
+- `semisup_r18sc_ts_k20_long` (10k steps): **76.3** vs 75.8 at 3k steps. Best epoch 486/625; final mask rate 0.91, pseudo-label accuracy 0.756. Tripling the budget bought ~0.5 points: the scratch teacher-student runs are limited by pseudo-label quality, not steps.
