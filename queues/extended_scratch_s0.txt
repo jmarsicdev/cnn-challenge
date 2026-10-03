@@ -1,0 +1,8 @@
+# extended-budget from-scratch low-label study, seed 0
+train.py          resnet18_scratch_xl          0
+train_semisup.py  semisup_r18sc_ts_k20_long    0
+train_semisup.py  semisup_r18sc_sup_k20_long   0
+train_semisup.py  semisup_r18sc_ts_k10_long    0
+train_semisup.py  semisup_r18sc_sup_k10_long   0
+train_semisup.py  semisup_r18sc_ts_k40_long    0
+train_semisup.py  semisup_r18sc_sup_k40_long   0
