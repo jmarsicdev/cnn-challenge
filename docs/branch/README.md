@@ -53,15 +53,15 @@ versions are queued.
 
 ## 3. Extended-budget runs (seed 0, finished 2026-10-03 00:02)
 
-### 3a. From-scratch low-label study at ~10k steps (vs ~3k above)
+### 3a. From-scratch low-label study at ~10k steps (vs ~3k above); 10k rows are mean ± std over 3 seeds
 
 | ResNet-18 scratch, labels/class | 10 | 20 | 40 | 120 (all) |
 |---|---|---|---|---|
-| supervised, 3k steps | 60.4 | 68.3 | 76.2 | 83.3 |
-| supervised, 10k steps | 63.7 | 70.6 | 77.5 | 85.0 |
-| teacher-student, 3k steps | 67.9 | 75.8 | 80.6 | |
-| teacher-student, 10k steps | **71.7** | **76.2** | **82.3** | |
-| gain from pool at 10k | +7.9 | +5.6 | +4.8 | |
+| supervised, 3k steps (seed 0) | 60.4 | 68.3 | 76.2 | 83.3 |
+| supervised, 10k steps (3 seeds) | 63.1 ± 0.6 | 70.8 ± 0.1 | 77.8 ± 0.5 | 84.8 ± 0.6 |
+| teacher-student, 3k steps (seed 0) | 67.9 | 75.8 | 80.6 | |
+| teacher-student, 10k steps (3 seeds) | **70.9 ± 2.9** | **77.3 ± 0.9** | **83.5 ± 1.2** | |
+| gain from pool at 10k (mean) | +7.8 | +6.5 | +5.8 | |
 
 Final teacher diagnostics at 10k steps (mask rate / pseudo-label accuracy): k=10: 0.83 / 0.742, k=20: 0.91 / 0.756, k=40: 0.94 / 0.843.
 
