@@ -1,0 +1,5 @@
+# All-labels from-scratch ceiling at the extended budget (~10k steps = 333 epochs x 30 steps).
+_base_: resnet18_scratch_long.yaml
+epochs: 333
+warmup_epochs: 10
+eval_every: 5

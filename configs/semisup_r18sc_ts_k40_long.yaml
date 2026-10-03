@@ -1,0 +1,6 @@
+# Extended budget (~10k steps) for from-scratch teacher-student; burn-in = first quarter.
+_base_: semisup_r18sc_ts_k40.yaml
+epochs: 770
+warmup_epochs: 15
+burnin_epochs: 190
+eval_every: 8

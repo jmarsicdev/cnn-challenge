@@ -1,0 +1,5 @@
+# Extended budget (~10k steps) for the from-scratch supervised floor.
+_base_: semisup_r18sc_sup_k40.yaml
+epochs: 500
+warmup_epochs: 25
+eval_every: 10
