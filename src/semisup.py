@@ -18,6 +18,15 @@ At the end of burn-in the teacher is reset to a copy of the student (Unbiased
 Teacher), so the first pseudo-labels come from a model that has already fitted
 the labeled set. Model selection and the saved checkpoint use the teacher.
 
+Options against confirmation bias (cfg keys):
+  dist_align: true     scale teacher probabilities by (uniform prior / running mean of teacher
+                       predictions) before thresholding, so no class can hog the pseudo-labels
+                       (distribution alignment, ReMixMatch / FixMatch-DA; classes here are balanced)
+  unsup_loss: ce|mse   ce = hard pseudo-labels above tau (FixMatch); mse = soft consistency on
+                       probabilities with no threshold (original Mean Teacher)
+  lambda_rampup_epochs sigmoid ramp of lambda_u from 0 over this many epochs after burn-in
+                       (Mean Teacher's schedule); 0 = constant
+
 Diagnostics logged per epoch: mask rate (fraction of unlabeled images that
 cleared tau) and pseudo-label accuracy among those (computed with the hidden
 labels, which are used for nothing else).
@@ -54,6 +63,11 @@ def train_teacher_student(cfg: dict, model: nn.Module, lab_loader, unl_loader, v
     burnin = cfg.get("burnin_epochs", 0)
     tau, lam = cfg["tau"], cfg["lambda_u"]
     pseudo_source = cfg.get("pseudo_source", "teacher")
+    dist_align = bool(cfg.get("dist_align", False))
+    unsup_kind = cfg.get("unsup_loss", "ce")
+    rampup = int(cfg.get("lambda_rampup_epochs", 0))
+    num_classes = cfg["num_classes"]
+    p_running = torch.full((num_classes,), 1.0 / num_classes, device=device)  # running mean of teacher probs
     use_amp = device.type == "cuda" and cfg.get("amp", True)
 
     teacher = ModelEmaV3(model, decay=cfg["ema_decay"])
@@ -80,6 +94,12 @@ def train_teacher_student(cfg: dict, model: nn.Module, lab_loader, unl_loader, v
         s_sup = s_unsup = 0.0
         n_mask = n_pseudo_correct = n_unl = 0
         te = time.time()
+        # Mean-Teacher style sigmoid ramp-up of the unsupervised weight after burn-in
+        if pseudo_on and rampup > 0:
+            t = min(1.0, (epoch - burnin - 1) / rampup)
+            lam_now = lam * float(torch.exp(torch.tensor(-5.0 * (1 - t) ** 2)))
+        else:
+            lam_now = lam
 
         for xw, xs, y_hidden in unl_loader:
             xl, yl = next(lab_iter)
@@ -97,14 +117,22 @@ def train_teacher_student(cfg: dict, model: nn.Module, lab_loader, unl_loader, v
                         else:  # FixMatch: the student itself labels the weak view
                             was_training = model.training
                             model.eval(); probs = model(xw).float().softmax(1); model.train(was_training)
+                    if dist_align:
+                        p_running.mul_(0.99).add_(0.01 * probs.mean(0))
+                        probs = probs * ((1.0 / num_classes) / p_running.clamp_min(1e-6))
+                        probs = probs / probs.sum(1, keepdim=True)
                     conf, pseudo = probs.max(1)
-                    mask = (conf >= tau).float()
                     logits_s = model(xs).float()
-                    loss_unsup = (F.cross_entropy(logits_s, pseudo, reduction="none") * mask).mean()
+                    if unsup_kind == "mse":  # soft consistency, no threshold (Mean Teacher)
+                        mask = torch.ones_like(conf)
+                        loss_unsup = F.mse_loss(logits_s.softmax(1), probs)
+                    else:  # hard pseudo-labels above tau (FixMatch / Unbiased Teacher)
+                        mask = (conf >= tau).float()
+                        loss_unsup = (F.cross_entropy(logits_s, pseudo, reduction="none") * mask).mean()
                     n_mask += int(mask.sum().item())
                     n_pseudo_correct += int(((pseudo == y_hidden).float() * mask).sum().item())
                 n_unl += xw.size(0)
-                loss = loss_sup + lam * loss_unsup
+                loss = loss_sup + lam_now * loss_unsup
 
             opt.zero_grad(set_to_none=True)
             loss.backward()

@@ -1,0 +1,3 @@
+# fix 1: stricter pseudo-label threshold
+_base_: semisup_r18sc_ts_k20_long.yaml
+tau: 0.95

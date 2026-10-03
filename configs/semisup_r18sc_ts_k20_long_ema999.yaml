@@ -1,0 +1,3 @@
+# fix 2: slower teacher (EMA decay 0.999 ~ 1000-step horizon)
+_base_: semisup_r18sc_ts_k20_long.yaml
+ema_decay: 0.999

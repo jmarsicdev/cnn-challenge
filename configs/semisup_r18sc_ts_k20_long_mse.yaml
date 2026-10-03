@@ -1,0 +1,6 @@
+# Mean Teacher soft consistency: MSE on probabilities, no threshold, sigmoid ramp-up of lambda
+_base_: semisup_r18sc_ts_k20_long.yaml
+unsup_loss: mse
+lambda_u: 10.0
+lambda_rampup_epochs: 40
+ema_decay: 0.999

@@ -1,0 +1,41 @@
+# round 2: confirmation-bias fixes (k=20 scratch, extended budget, seed 0)
+train_semisup.py  semisup_r18sc_ts_k20_long_tau95  0
+train_semisup.py  semisup_r18sc_ts_k20_long_ema999  0
+train_semisup.py  semisup_r18sc_ts_k20_long_da  0
+train_semisup.py  semisup_r18sc_ts_k20_long_allfixes  0
+train_semisup.py  semisup_r18sc_ts_k20_long_mse  0
+# replication seeds 1,2: extended scratch study
+train.py          resnet18_scratch_xl  1
+train_semisup.py  semisup_r18sc_ts_k20_long  1
+train_semisup.py  semisup_r18sc_sup_k20_long  1
+train_semisup.py  semisup_r18sc_ts_k10_long  1
+train_semisup.py  semisup_r18sc_sup_k10_long  1
+train_semisup.py  semisup_r18sc_ts_k40_long  1
+train_semisup.py  semisup_r18sc_sup_k40_long  1
+train.py          resnet18_scratch_xl  2
+train_semisup.py  semisup_r18sc_ts_k20_long  2
+train_semisup.py  semisup_r18sc_sup_k20_long  2
+train_semisup.py  semisup_r18sc_ts_k10_long  2
+train_semisup.py  semisup_r18sc_sup_k10_long  2
+train_semisup.py  semisup_r18sc_ts_k40_long  2
+train_semisup.py  semisup_r18sc_sup_k40_long  2
+# replication seeds 1,2: student / distillation at 300 epochs
+train.py          scenenet_s_sup_long  1
+train.py          scenenet_s_kd_long  1
+train.py          resnet18_kd_long  1
+train.py          scenenet_s_sup_long  2
+train.py          scenenet_s_kd_long  2
+train.py          resnet18_kd_long  2
+# replication seeds 1,2: pretrained ResNet-18 arm (cheap)
+train_semisup.py  semisup_r18in_sup_k10  1
+train_semisup.py  semisup_r18in_ts_k10  1
+train_semisup.py  semisup_r18in_sup_k20  1
+train_semisup.py  semisup_r18in_ts_k20  1
+train_semisup.py  semisup_r18in_sup_k40  1
+train_semisup.py  semisup_r18in_ts_k40  1
+train_semisup.py  semisup_r18in_sup_k10  2
+train_semisup.py  semisup_r18in_ts_k10  2
+train_semisup.py  semisup_r18in_sup_k20  2
+train_semisup.py  semisup_r18in_ts_k20  2
+train_semisup.py  semisup_r18in_sup_k40  2
+train_semisup.py  semisup_r18in_ts_k40  2

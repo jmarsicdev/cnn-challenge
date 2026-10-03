@@ -1,0 +1,5 @@
+# fixes 1+2+3 combined
+_base_: semisup_r18sc_ts_k20_long.yaml
+tau: 0.95
+ema_decay: 0.999
+dist_align: true
