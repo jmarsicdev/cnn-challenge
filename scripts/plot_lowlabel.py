@@ -23,7 +23,7 @@ SERIES = {  # fixed categorical order (validated palette slots 1 and 2)
 }
 
 
-def collect(runs: Path, tag: str = "", ref_glob: str = "convnext_tiny_final_a"):
+def collect(runs: Path, tag: str = "", ref_glob: str = "convnext_tiny_final_a", suffix: str = ""):
     """tag="" -> the ConvNeXt study (runs semisup_sup_k*/semisup_ts_k*);
     tag="r18sc" -> runs semisup_r18sc_sup_k*/semisup_r18sc_ts_k*, etc."""
     pts = defaultdict(lambda: defaultdict(list))  # mode -> k -> [acc]
@@ -31,6 +31,8 @@ def collect(runs: Path, tag: str = "", ref_glob: str = "convnext_tiny_final_a"):
     for mf in runs.glob(pattern):
         m = json.loads(mf.read_text())
         if not tag and m["name"].startswith("semisup_r18"):
+            continue
+        if m["name"].endswith("_long") != (suffix == "_long"):  # keep 3k-step and 10k-step arms apart
             continue
         if m.get("mode") in SERIES and "fixmatch" not in m["name"]:
             pts[m["mode"]][int(m["labels_per_class"])].append(m["best_val_acc"] * 100)
@@ -46,8 +48,9 @@ def main():
     ap.add_argument("--ref", default="convnext_tiny_final_a", help="run name for the all-labels ceiling line")
     ap.add_argument("--title", default="ConvNeXt-T: value of unlabeled images when labels are scarce")
     ap.add_argument("--ymin", type=float, default=None)
+    ap.add_argument("--suffix", default="", help="'_long' to plot the extended-budget runs instead")
     args = ap.parse_args()
-    pts, ref = collect(Path(args.runs), args.tag, args.ref)
+    pts, ref = collect(Path(args.runs), args.tag, args.ref, args.suffix)
 
     fig, ax = plt.subplots(figsize=(5.2, 3.3), dpi=200)
     fig.patch.set_facecolor("#fcfcfb"); ax.set_facecolor("#fcfcfb")
