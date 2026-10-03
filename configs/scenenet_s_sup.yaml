@@ -1,0 +1,12 @@
+# Custom ~0.9M-param student, trained from scratch on labels only (the floor for distillation).
+_base_: base.yaml
+model: scenenet_s
+pretrained: none
+lr: 0.002
+weight_decay: 0.05
+epochs: 100
+warmup_epochs: 3
+aug: medium
+label_smoothing: 0.1
+ema_decay: 0.998
+eval_every: 2

@@ -16,7 +16,7 @@ from timm.loss import SoftTargetCrossEntropy
 from timm.utils import ModelEmaV3
 from torch.utils.tensorboard import SummaryWriter
 
-from .models import param_groups
+from .models import load_teacher, param_groups
 
 
 def build_optimizer(cfg, model):
@@ -95,6 +95,16 @@ def train(cfg: dict, model: nn.Module, train_loader, val_loader, device, run_dir
     ema = ModelEmaV3(model, decay=cfg["ema_decay"]) if cfg.get("ema_decay") else None
     use_amp = device.type == "cuda" and cfg.get("amp", True)
 
+    # knowledge distillation: soft targets from a frozen teacher on the same augmented batch
+    teacher = None
+    if cfg.get("teacher_ckpt"):
+        assert mix is None, "distillation with mixup is not supported here"
+        teacher, tcfg = load_teacher(cfg["teacher_ckpt"], device)
+        assert tcfg["img_size"] == cfg["img_size"] and tcfg["color"] == cfg["color"], \
+            f"teacher expects {tcfg['img_size']}px/{tcfg['color']}, student config is {cfg['img_size']}px/{cfg['color']}"
+        kd_alpha, kd_T = float(cfg.get("kd_alpha", 0.7)), float(cfg.get("kd_temp", 2.0))
+        log(f"distilling from {cfg['teacher_ckpt']} ({tcfg['model']}) alpha={kd_alpha} T={kd_T}")
+
     best = {"acc": -1.0, "epoch": 0, "state": None, "val_loss": None}
     hist_path = run_dir / "history.csv"
     fields = ["epoch", "lr", "train_loss", "train_acc", "val_loss", "val_acc", "ema_val_acc", "sec"]
@@ -116,6 +126,12 @@ def train(cfg: dict, model: nn.Module, train_loader, val_loader, device, run_dir
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
                 logits = model(x)
                 loss = criterion(logits, y_in)
+                if teacher is not None:
+                    with torch.no_grad():
+                        t_logits = teacher(x).float()
+                    kd = F.kl_div(F.log_softmax(logits.float() / kd_T, dim=1),
+                                  F.softmax(t_logits / kd_T, dim=1), reduction="batchmean") * kd_T ** 2
+                    loss = (1 - kd_alpha) * loss + kd_alpha * kd
             opt.zero_grad(set_to_none=True)
             loss.backward()
             if cfg.get("grad_clip"):

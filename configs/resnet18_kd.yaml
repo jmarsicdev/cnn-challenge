@@ -1,0 +1,6 @@
+# Reference: ResNet-18 from scratch with the same distillation (vs resnet18_scratch_long at 83.3).
+_base_: resnet18_scratch_long.yaml
+teacher_ckpt: checkpoints/convnext_tiny_final_a_s2.pt
+kd_alpha: 0.7
+kd_temp: 2.0
+eval_every: 2

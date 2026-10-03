@@ -1,0 +1,7 @@
+# Same student, same budget, plus knowledge distillation from the final ConvNeXt-T checkpoint
+# (soft targets at temperature 2, weight 0.7; teacher sees the same augmented batch).
+_base_: scenenet_s_sup.yaml
+teacher_ckpt: checkpoints/convnext_tiny_final_a_s2.pt
+kd_alpha: 0.7
+kd_temp: 2.0
+label_smoothing: 0.0

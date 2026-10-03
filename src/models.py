@@ -32,6 +32,9 @@ def build_model(cfg: dict, num_classes: int) -> nn.Module:
     if name == "tnet":
         assert cfg["img_size"] == 64, "TNet's flatten size assumes 64x64 input"
         return TNet(num_classes, in_chans)
+    if name == "scenenet_s":
+        assert pretrained == "none", "scenenet_s has no pretrained weights"
+        return SceneNetS(num_classes, in_chans, drop=cfg.get("dropout", 0.0))
 
     kwargs = dict(num_classes=num_classes, in_chans=in_chans,
                   drop_rate=cfg.get("dropout", 0.0))
@@ -88,3 +91,76 @@ def param_groups(model: nn.Module, lr: float, weight_decay: float, backbone_lr_m
                         "weight_decay": weight_decay if decay else 0.0,
                         "name": f"{part}_{'decay' if decay else 'nodecay'}"})
     return out
+
+
+# ---------------------------------------------------------------------------
+# Small custom student for distillation (designed for 224x224 grayscale scenes)
+# ---------------------------------------------------------------------------
+class ConvBNAct(nn.Sequential):
+    def __init__(self, cin, cout, k=3, s=1, groups=1):
+        super().__init__(nn.Conv2d(cin, cout, k, s, k // 2, groups=groups, bias=False),
+                         nn.BatchNorm2d(cout), nn.SiLU(inplace=True))
+
+
+class DSBlock(nn.Module):
+    """Depthwise-separable residual block (MobileNet-style), optional stride-2 downsample."""
+
+    def __init__(self, cin, cout, stride=1, expand=4):
+        super().__init__()
+        mid = cin * expand
+        self.body = nn.Sequential(
+            ConvBNAct(cin, mid, 1),                      # expand
+            ConvBNAct(mid, mid, 3, stride, groups=mid),  # depthwise spatial
+            nn.Conv2d(mid, cout, 1, bias=False), nn.BatchNorm2d(cout),  # project (linear)
+        )
+        self.skip = stride == 1 and cin == cout
+
+    def forward(self, x):
+        y = self.body(x)
+        return x + y if self.skip else y
+
+
+class SceneNetS(nn.Module):
+    """~1.6M-parameter CNN: stem /4, four stages (/8, /16, /32, /32), global pool, linear.
+
+    Design notes: depthwise-separable inverted-residual blocks keep FLOPs low at 224 px;
+    SiLU + BN; no dropout (regularized by distillation instead); widths chosen so eval
+    throughput is several times ResNet-18's while keeping a 7x7 final feature map.
+    """
+
+    def __init__(self, num_classes=16, in_chans=3, widths=(24, 48, 96, 192), depths=(2, 3, 4, 2), drop=0.0):
+        super().__init__()
+        self.stem = nn.Sequential(ConvBNAct(in_chans, 16, 3, 2), ConvBNAct(16, widths[0], 3, 2))  # /4
+        stages, cin = [], widths[0]
+        for i, (w, d) in enumerate(zip(widths, depths)):
+            blocks = []
+            for j in range(d):
+                stride = 2 if (j == 0 and i > 0) else 1  # stage 0 stays at /4; stages 1-3 downsample -> /8, /16, /32
+                blocks.append(DSBlock(cin, w, stride))
+                cin = w
+            stages.append(nn.Sequential(*blocks))
+        self.stages = nn.Sequential(*stages)
+        self.head_conv = ConvBNAct(widths[3], 512, 1)
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.drop = nn.Dropout(drop)
+        self.fc = nn.Linear(512, num_classes)
+
+    def forward(self, x):
+        x = self.stages(self.stem(x))
+        x = self.pool(self.head_conv(x)).flatten(1)
+        return self.fc(self.drop(x))
+
+    def get_classifier(self):
+        return self.fc
+
+
+def load_teacher(ckpt_path: str, device) -> tuple[nn.Module, dict]:
+    """Load a trained checkpoint (as written by train.py) as a frozen eval-mode teacher."""
+    ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    tcfg = ck["config"]
+    teacher = build_model({**tcfg, "pretrained": "none"}, len(ck["classes"]))
+    teacher.load_state_dict(ck["model"])
+    teacher.to(device).eval()
+    for p in teacher.parameters():
+        p.requires_grad = False
+    return teacher, tcfg
