@@ -1,0 +1,5 @@
+# 3x budget (~9000 steps): both distilled runs were still improving at epoch 100.
+_base_: scenenet_s_sup.yaml
+epochs: 300
+warmup_epochs: 9
+eval_every: 5

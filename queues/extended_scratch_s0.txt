@@ -6,3 +6,7 @@ train_semisup.py  semisup_r18sc_ts_k10_long    0
 train_semisup.py  semisup_r18sc_sup_k10_long   0
 train_semisup.py  semisup_r18sc_ts_k40_long    0
 train_semisup.py  semisup_r18sc_sup_k40_long   0
+# distillation, extended budget
+train.py          scenenet_s_kd_long   0
+train.py          scenenet_s_sup_long  0
+train.py          resnet18_kd_long     0
