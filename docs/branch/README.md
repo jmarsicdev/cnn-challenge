@@ -51,14 +51,40 @@ at 224 px (ResNet-18 ≈ 1,800). Distillation: KL to the teacher's temperature-2
 same augmented batch, weight 0.7. Both distilled runs peaked on their last epoch; 300-epoch
 versions are queued.
 
-## 3. Extended-budget runs (in progress)
+## 3. Extended-budget runs (seed 0, finished 2026-10-03 00:02)
 
-Queue: `queues/extended_scratch_s0.txt`, log: `runs/queue_extended_scratch_s0.log`.
-Done so far: all-labels scratch ceiling at ~10k steps = **85.0** (vs 83.3 at 3k).
-- `semisup_r18sc_ts_k20_long` (10k steps): **76.3** vs 75.8 at 3k steps. Best epoch 486/625; final mask rate 0.91, pseudo-label accuracy 0.756. Tripling the budget bought ~0.5 points: the scratch teacher-student runs are limited by pseudo-label quality, not steps.
-  Diagnostic worth keeping: at 3k steps the teacher labeled 62 % of the pool at 87.5 % accuracy; by 10k
-  steps it labeled 91 % at 75.6 %. More confident and less correct over time is confirmation bias in
-  the raw numbers: the student learns the teacher's early mistakes, the teacher (its average) inherits
-  them, and the threshold stops filtering. Candidate fixes if we go further: a higher tau for scratch
-  runs, a slower EMA (0.999), class-balanced pseudo-labeling (the Unbiased Teacher fix), or a
-  distribution-alignment term.
+### 3a. From-scratch low-label study at ~10k steps (vs ~3k above)
+
+| ResNet-18 scratch, labels/class | 10 | 20 | 40 | 120 (all) |
+|---|---|---|---|---|
+| supervised, 3k steps | 60.4 | 68.3 | 76.2 | 83.3 |
+| supervised, 10k steps | 63.7 | 70.6 | 77.5 | 85.0 |
+| teacher-student, 3k steps | 67.9 | 75.8 | 80.6 | |
+| teacher-student, 10k steps | **71.7** | **76.2** | **82.3** | |
+| gain from pool at 10k | +7.9 | +5.6 | +4.8 | |
+
+Final teacher diagnostics at 10k steps (mask rate / pseudo-label accuracy): k=10: 0.83 / 0.742, k=20: 0.91 / 0.756, k=40: 0.94 / 0.843.
+
+Figure: `lowlabel_r18_scratch_long.png`.
+
+Reading it: the longer budget lifts the supervised floors by 1–3 points and the teacher-student runs by
+0.5–4 points, so the pool's advantage holds at +5 to +8 points. At 40 labels per class with the pool
+(82.3) the model is within 2.7 points of using all 120 labels (85.0). The teacher's
+pseudo-label accuracy at the end is well below its coverage in every case, so confirmation bias remains the
+limiting factor; the fixes listed above are the next experiments if this continues.
+
+### 3b. Distillation at 300 epochs (~9k steps)
+
+| Model, all from scratch | 100 epochs | 300 epochs | Params |
+|---|---|---|---|
+| ResNet-18, labels only | 83.3 | 85.0 | 11.18M |
+| ResNet-18, distilled | 85.2 | 86.0 | 11.18M |
+| SceneNet-S, labels only | 84.0 | 88.7 | 0.86M |
+| SceneNet-S, distilled | 84.8 | 89.0 | 0.86M |
+
+(ResNet-18 labels-only at 300 epochs is the `resnet18_scratch_xl` run, 333 epochs.) Best epochs at 300: SceneNet-S labels-only 135, distilled 250.
+
+Reading it: with a long enough schedule the 0.86M-parameter SceneNet-S reaches ~89 % from scratch, above
+ResNet-18 from scratch (85.0) at a 13x smaller parameter count, and the distillation gain shrinks to
++0.2 points for the student and +1.0 for ResNet-18. The soft targets mostly accelerate
+learning rather than raise the ceiling here; the architecture choice mattered more than the teacher.
