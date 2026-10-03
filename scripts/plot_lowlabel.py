@@ -90,7 +90,8 @@ def main():
             cells.append(f"{st.mean(v):.2f} ± {st.stdev(v):.2f} (n={len(v)})" if len(v) > 1 else (f"{v[0]:.2f}" if v else "-"))
         lines.append(f"| {k} | " + " | ".join(cells) + " |")
     if ref:
-        lines.append(f"| 120 (all) | {st.mean(ref):.2f} ± {st.stdev(ref):.2f} (n={len(ref)}) | - |")
+        sd = f" ± {st.stdev(ref):.2f}" if len(ref) > 1 else ""
+        lines.append(f"| 120 (all) | {st.mean(ref):.2f}{sd} (n={len(ref)}) | - |")
     Path(args.out).with_suffix(".md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines)); print("saved", args.out)
 
