@@ -68,8 +68,8 @@ def main():
     if ref:
         r = st.mean(ref)
         ax.axhline(r, color="#52514e", lw=1, ls=(0, (4, 3)), zorder=2)
-        ax.annotate(f"all 120 labels/class: {r:.1f}", (max(max(pts[m]) for m in pts if pts[m]), r),
-                    textcoords="offset points", xytext=(0, -11), ha="right", fontsize=7.5, color="#52514e")
+        ax.annotate(f"all 120 labels/class: {r:.1f}", (min(min(pts[m]) for m in pts if pts[m]), r),
+                    textcoords="offset points", xytext=(2, -11), ha="left", fontsize=7.5, color="#52514e")
     ax.set_xlabel("labeled training images per class", fontsize=9, color="#0b0b0b")
     ax.set_ylabel("validation accuracy (%)", fontsize=9, color="#0b0b0b")
     ax.set_xscale("log", base=2); ax.set_xticks([10, 20, 40, 120]); ax.set_xticklabels(["10", "20", "40", "120"])
@@ -78,7 +78,7 @@ def main():
     for s in ("left", "bottom"): ax.spines[s].set_color("#c3c2b7")
     ax.tick_params(colors="#52514e", labelsize=8)
     ax.legend(frameon=False, fontsize=8, loc="lower right")
-    ax.set_title(args.title, fontsize=9.5, loc="left", color="#0b0b0b")
+    ax.set_title(args.title, fontsize=9 if len(args.title) < 60 else 8, loc="left", color="#0b0b0b", wrap=True)
     if args.ymin is not None:
         ax.set_ylim(bottom=args.ymin)
     fig.tight_layout()

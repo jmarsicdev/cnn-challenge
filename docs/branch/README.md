@@ -56,3 +56,9 @@ versions are queued.
 Queue: `queues/extended_scratch_s0.txt`, log: `runs/queue_extended_scratch_s0.log`.
 Done so far: all-labels scratch ceiling at ~10k steps = **85.0** (vs 83.3 at 3k).
 - `semisup_r18sc_ts_k20_long` (10k steps): **76.3** vs 75.8 at 3k steps. Best epoch 486/625; final mask rate 0.91, pseudo-label accuracy 0.756. Tripling the budget bought ~0.5 points: the scratch teacher-student runs are limited by pseudo-label quality, not steps.
+  Diagnostic worth keeping: at 3k steps the teacher labeled 62 % of the pool at 87.5 % accuracy; by 10k
+  steps it labeled 91 % at 75.6 %. More confident and less correct over time is confirmation bias in
+  the raw numbers: the student learns the teacher's early mistakes, the teacher (its average) inherits
+  them, and the threshold stops filtering. Candidate fixes if we go further: a higher tau for scratch
+  runs, a slower EMA (0.999), class-balanced pseudo-labeling (the Unbiased Teacher fix), or a
+  distribution-alignment term.
